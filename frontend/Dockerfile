@@ -11,6 +11,7 @@ COPY . .
 # present HERE (not just at runtime). Passed via --build-arg from build-push.sh.
 ARG NEXT_PUBLIC_API_URL
 ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+ENV DOCKER_BUILD=1
 RUN npm run build
 
 FROM node:20-alpine AS runner
