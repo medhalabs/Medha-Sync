@@ -3,7 +3,7 @@ import { useRef, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import api from "@/shared/lib/api";
 import EmptyState from "@/shared/components/EmptyState";
-import { formatFileSize, type DocumentRecord } from "@/shared/lib/files";
+import { formatFileSize, storedFileUrl, type DocumentRecord } from "@/shared/lib/files";
 import {
   Files, Upload, Copy, Trash2, ExternalLink, FileText, ImageIcon,
   Loader2, Pencil, Check, X,
@@ -24,8 +24,10 @@ function DocumentCard({
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(doc.name);
 
+  const fileUrl = storedFileUrl(doc.stored_path);
+
   const copyLink = () => {
-    navigator.clipboard.writeText(doc.url);
+    navigator.clipboard.writeText(fileUrl);
     toast.success("Link copied");
   };
 
@@ -40,7 +42,7 @@ function DocumentCard({
     <div className="bg-white border border-gray-200 rounded-xl overflow-hidden hover:shadow-md transition-shadow group">
       <div className="h-36 bg-gray-50 flex items-center justify-center border-b border-gray-100">
         {doc.kind === "image" ? (
-          <img src={doc.url} alt={doc.name} className="max-h-full max-w-full object-contain p-2" />
+          <img src={fileUrl} alt={doc.name} className="max-h-full max-w-full object-contain p-2" />
         ) : (
           <div className="flex flex-col items-center text-red-500">
             <FileText className="w-12 h-12 mb-1 opacity-80" />
@@ -74,7 +76,7 @@ function DocumentCard({
             className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-lg">
             <Copy className="w-3 h-3" /> Copy link
           </button>
-          <a href={doc.url} target="_blank" rel="noopener noreferrer" title="Open"
+          <a href={fileUrl} target="_blank" rel="noopener noreferrer" title="Open"
             className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg">
             <ExternalLink className="w-3.5 h-3.5" />
           </a>

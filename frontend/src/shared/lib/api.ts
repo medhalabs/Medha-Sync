@@ -1,8 +1,9 @@
 import axios from "axios";
 import { getSession } from "next-auth/react";
+import { getApiBase } from "@/shared/lib/api-base";
 
 const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000",
+  baseURL: getApiBase(),
 });
 
 api.interceptors.request.use(async (config) => {

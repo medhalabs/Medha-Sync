@@ -1,7 +1,7 @@
 "use client";
 import { useQuery } from "@tanstack/react-query";
 import api from "@/shared/lib/api";
-import { formatFileSize, type DocumentRecord } from "@/shared/lib/files";
+import { formatFileSize, storedFileUrl, type DocumentRecord } from "@/shared/lib/files";
 import { FileText, ImageIcon, Loader2, X } from "lucide-react";
 
 export default function DocumentPicker({
@@ -44,7 +44,7 @@ export default function DocumentPicker({
                   className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-indigo-50 text-left transition-colors"
                 >
                   {doc.kind === "image" ? (
-                    <img src={doc.url} alt="" className="w-10 h-10 rounded object-cover border border-gray-200" />
+                    <img src={storedFileUrl(doc.stored_path)} alt="" className="w-10 h-10 rounded object-cover border border-gray-200" />
                   ) : (
                     <div className="w-10 h-10 rounded bg-red-50 flex items-center justify-center">
                       <FileText className="w-5 h-5 text-red-400" />

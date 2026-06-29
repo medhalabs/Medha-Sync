@@ -1,4 +1,4 @@
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+import { getApiBase } from "@/shared/lib/api-base";
 
 export type DocumentRecord = {
   id: string;
@@ -15,7 +15,8 @@ export type DocumentRecord = {
 export function storedFileUrl(path: string): string {
   if (!path) return "";
   if (path.startsWith("http://") || path.startsWith("https://")) return path;
-  return `${API_BASE.replace(/\/$/, "")}/api/files/${path.replace(/^\//, "")}`;
+  const base = getApiBase();
+  return `${base}/api/files/${path.replace(/^\//, "")}`;
 }
 
 export function formatFileSize(bytes: number): string {

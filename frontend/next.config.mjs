@@ -4,9 +4,25 @@ if (process.env.VERCEL === "1" && !process.env.NEXTAUTH_SECRET) {
   );
 }
 
+const backendUrl = (
+  process.env.BACKEND_URL ||
+  process.env.NEXT_PUBLIC_API_URL ||
+  "http://localhost:8000"
+).replace(/\/$/, "");
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   ...(process.env.DOCKER_BUILD === "1" ? { output: "standalone" } : {}),
+  async rewrites() {
+    return {
+      afterFiles: [
+        {
+          source: "/api/:path*",
+          destination: `${backendUrl}/api/:path*`,
+        },
+      ],
+    };
+  },
   images: {
     remotePatterns: [
       { protocol: "http", hostname: "**" },
