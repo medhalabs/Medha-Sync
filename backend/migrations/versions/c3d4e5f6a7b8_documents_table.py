@@ -15,6 +15,11 @@ depends_on = None
 
 
 def upgrade():
+    conn = op.get_bind()
+    inspector = sa.inspect(conn)
+    if "documents" in inspector.get_table_names():
+        return
+
     op.create_table(
         "documents",
         sa.Column("id", sa.String(), nullable=False),

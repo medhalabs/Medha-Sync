@@ -15,7 +15,12 @@ depends_on = None
 
 
 def upgrade():
-    op.add_column('catalog_items', sa.Column('link_url', sa.String(), nullable=True))
+    conn = op.get_bind()
+    inspector = sa.inspect(conn)
+    if "catalog_items" in inspector.get_table_names():
+        existing_cols = {c["name"] for c in inspector.get_columns("catalog_items")}
+        if "link_url" not in existing_cols:
+            op.add_column("catalog_items", sa.Column("link_url", sa.String(), nullable=True))
 
 
 def downgrade():
