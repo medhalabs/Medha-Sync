@@ -1,4 +1,4 @@
-import { getApiBase } from "@/shared/lib/api-base";
+import { getApiBase, API_PROXY_PREFIX } from "@/shared/lib/api-base";
 
 export type DocumentRecord = {
   id: string;
@@ -16,7 +16,11 @@ export function storedFileUrl(path: string): string {
   if (!path) return "";
   if (path.startsWith("http://") || path.startsWith("https://")) return path;
   const base = getApiBase();
-  return `${base}/api/files/${path.replace(/^\//, "")}`;
+  const filePath = `/api/files/${path.replace(/^\//, "")}`;
+  if (base === API_PROXY_PREFIX) {
+    return `${base}${filePath.replace(/^\/api/, "")}`;
+  }
+  return `${base}${filePath}`;
 }
 
 export function formatFileSize(bytes: number): string {

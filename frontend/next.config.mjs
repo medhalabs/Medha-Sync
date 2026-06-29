@@ -17,7 +17,7 @@ const nextConfig = {
     return {
       afterFiles: [
         {
-          source: "/api/:path*",
+          source: "/api/proxy/:path*",
           destination: `${backendUrl}/api/:path*`,
         },
       ],
