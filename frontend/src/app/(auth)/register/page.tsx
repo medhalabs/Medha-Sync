@@ -25,7 +25,11 @@ export default function RegisterPage() {
       });
       if (!res.ok) {
         const err = await res.json();
-        throw new Error(err.detail || "Registration failed");
+        const detail = err.detail;
+        const message = Array.isArray(detail)
+          ? detail.map((d: { msg: string }) => d.msg).join(", ")
+          : (detail || "Registration failed");
+        throw new Error(message);
       }
       const signin = await signIn("credentials", { email: form.email, password: form.password, redirect: false });
       if (signin?.ok) router.push("/inbox");
