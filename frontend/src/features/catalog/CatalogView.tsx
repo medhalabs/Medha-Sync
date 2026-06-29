@@ -1,9 +1,11 @@
 "use client";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import api from "@/shared/lib/api";
+import { storedFileUrl } from "@/shared/lib/files";
+import DocumentPicker from "@/features/documents/DocumentPicker";
 import EmptyState from "@/shared/components/EmptyState";
-import { BookOpen, Plus, Pencil, Trash2, FileText, ChevronRight, ChevronDown, FolderOpen, Link } from "lucide-react";
+import { BookOpen, Plus, Pencil, Trash2, FileText, ChevronRight, ChevronDown, FolderOpen, Link, Upload, X, Copy, ImageIcon, Loader2, Library } from "lucide-react";
 import toast from "react-hot-toast";
 
 const EMPTY_FORM = {
@@ -14,8 +16,133 @@ const EMPTY_FORM = {
   parent_id: null as string | null,
   brochure_url: "",
   link_url: "",
+  image_url: "",
 };
 type FormState = typeof EMPTY_FORM;
+
+function FileUploadField({
+  label,
+  hint,
+  accept,
+  value,
+  onChange,
+  onClear,
+  isImage,
+  libraryKind,
+}: {
+  label: string;
+  hint: string;
+  accept: string;
+  value: string;
+  onChange: (path: string) => void;
+  onClear: () => void;
+  isImage?: boolean;
+  libraryKind: "pdf" | "image";
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+  const [showLibrary, setShowLibrary] = useState(false);
+  const publicUrl = storedFileUrl(value);
+
+  const handleFile = async (file: File | null) => {
+    if (!file) return;
+    setUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      fd.append("name", file.name.replace(/\.[^.]+$/, ""));
+      const res = await api.post("/api/documents", fd, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      onChange(res.data.stored_path);
+      toast.success("Uploaded to library");
+    } catch (e: any) {
+      toast.error(e.response?.data?.detail || "Upload failed");
+    } finally {
+      setUploading(false);
+      if (inputRef.current) inputRef.current.value = "";
+    }
+  };
+
+  const copyLink = () => {
+    if (!publicUrl) return;
+    navigator.clipboard.writeText(publicUrl);
+    toast.success("Link copied");
+  };
+
+  return (
+    <div>
+      <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
+      <p className="text-xs text-gray-400 mb-2">{hint}</p>
+
+      {value && (
+        <div className="mb-2 p-3 bg-gray-50 border border-gray-200 rounded-lg space-y-2">
+          {isImage && publicUrl && (
+            <img src={publicUrl} alt="Preview" className="max-h-32 rounded-lg border border-gray-200 object-contain" />
+          )}
+          <div className="flex items-center gap-2">
+            <a href={publicUrl} target="_blank" rel="noopener noreferrer"
+              className="text-xs text-indigo-600 hover:underline truncate flex-1">
+              {publicUrl}
+            </a>
+            <button type="button" onClick={copyLink} title="Copy link"
+              className="p-1 hover:bg-gray-200 rounded text-gray-500">
+              <Copy className="w-3.5 h-3.5" />
+            </button>
+            <button type="button" onClick={onClear} title="Remove"
+              className="p-1 hover:bg-red-50 rounded text-red-400">
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </div>
+      )}
+
+      <div className="flex gap-2 flex-wrap">
+        <input
+          ref={inputRef}
+          type="file"
+          accept={accept}
+          className="hidden"
+          onChange={(e) => handleFile(e.target.files?.[0] ?? null)}
+        />
+        <button
+          type="button"
+          onClick={() => inputRef.current?.click()}
+          disabled={uploading}
+          className="flex items-center gap-2 px-3 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50 disabled:opacity-50"
+        >
+          {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+          {uploading ? "Uploading…" : "Upload new"}
+        </button>
+        <button
+          type="button"
+          onClick={() => setShowLibrary(true)}
+          className="flex items-center gap-2 px-3 py-2 border border-indigo-200 text-indigo-600 bg-indigo-50 rounded-lg text-sm hover:bg-indigo-100"
+        >
+          <Library className="w-4 h-4" /> From library
+        </button>
+      </div>
+
+      {showLibrary && (
+        <DocumentPicker
+          kind={libraryKind}
+          onSelect={onChange}
+          onClose={() => setShowLibrary(false)}
+        />
+      )}
+
+      <div className="mt-2">
+        <label className="block text-xs text-gray-500 mb-1">Or paste an external URL</label>
+        <input
+          value={value.startsWith("http") ? value : ""}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder="https://…"
+          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+        />
+      </div>
+    </div>
+  );
+}
 
 /* ─── Item form (shared by add + edit modal) ─── */
 function ItemForm({
@@ -51,11 +178,27 @@ function ItemForm({
           className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none" />
       </div>
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Brochure URL (optional)</label>
-        <input value={form.brochure_url} onChange={e => setForm({ ...form, brochure_url: e.target.value })}
-          placeholder="https://…/brochure.pdf"
-          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
-        <p className="text-xs text-gray-400 mt-1">PDF sent as a downloadable file</p>
+        <FileUploadField
+          label="Brochure / PDF (optional)"
+          hint="Pick from your document library or upload a new PDF — sent on WhatsApp when customers select this item."
+          accept="application/pdf,.pdf"
+          value={form.brochure_url}
+          onChange={(path) => setForm({ ...form, brochure_url: path })}
+          onClear={() => setForm({ ...form, brochure_url: "" })}
+          libraryKind="pdf"
+        />
+      </div>
+      <div>
+        <FileUploadField
+          label="Image (optional)"
+          hint="Pick from your document library or upload a new image — sent on WhatsApp when customers select this item."
+          accept="image/jpeg,image/png,image/webp,image/gif,.jpg,.jpeg,.png,.webp,.gif"
+          value={form.image_url}
+          onChange={(path) => setForm({ ...form, image_url: path })}
+          onClear={() => setForm({ ...form, image_url: "" })}
+          isImage
+          libraryKind="image"
+        />
       </div>
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">Link URL (optional)</label>
@@ -150,6 +293,9 @@ function TreeItem({
             )}
             {item.brochure_url && (
               <span className="text-xs text-green-600 bg-green-50 px-1.5 py-0.5 rounded-full">PDF</span>
+            )}
+            {item.image_url && (
+              <span className="text-xs text-purple-600 bg-purple-50 px-1.5 py-0.5 rounded-full flex items-center gap-0.5"><ImageIcon className="w-2.5 h-2.5" />Image</span>
             )}
             {item.link_url && (
               <span className="text-xs text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded-full flex items-center gap-0.5"><Link className="w-2.5 h-2.5" />Link</span>
@@ -256,6 +402,7 @@ export default function CatalogView() {
       parent_id: item.parent_id || null,
       brochure_url: item.brochure_url || "",
       link_url: item.link_url || "",
+      image_url: item.image_url || "",
     });
     setShowModal(true);
   };
@@ -275,6 +422,7 @@ export default function CatalogView() {
       parent_id: form.parent_id || null,
       brochure_url: form.brochure_url || null,
       link_url: form.link_url || null,
+      image_url: form.image_url || null,
     };
     if (editItem) {
       updateMutation.mutate({ id: editItem.id, data: payload });
@@ -331,7 +479,7 @@ export default function CatalogView() {
       {showModal && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50"
           onClick={closeModal}>
-          <div className="bg-white rounded-xl p-6 w-full max-w-md shadow-xl" onClick={e => e.stopPropagation()}>
+          <div className="bg-white rounded-xl p-6 w-full max-w-lg shadow-xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
             <h2 className="text-base font-semibold mb-4">
               {editItem ? `Edit "${editItem.title}"` : "Add catalog item"}
             </h2>

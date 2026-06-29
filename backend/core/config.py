@@ -20,6 +20,10 @@ class Settings(BaseSettings):
     MINIO_BUCKET: str = "medha-files"
     MINIO_SECURE: bool = False
 
+    # Public URLs for stored files (WhatsApp + dashboard links)
+    BACKEND_URL: str = "http://backend:8000"
+    PUBLIC_API_URL: str = "http://localhost:8000"
+
     # Auth — SECRET_KEY MUST be set via environment variable in production
     SECRET_KEY: str = "dev-key-change-in-production"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60

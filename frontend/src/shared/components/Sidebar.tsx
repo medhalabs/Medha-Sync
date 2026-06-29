@@ -3,7 +3,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/shared/lib/utils";
 import {
-  Inbox, Users, GitBranch, Megaphone, Zap, BookOpen, BarChart2, Settings, LogOut, MessageSquare,
+  Inbox, Users, GitBranch, Megaphone, Zap, BookOpen, BarChart2, Settings, LogOut, MessageSquare, Files,
 } from "lucide-react";
 import { signOut, useSession } from "next-auth/react";
 
@@ -14,6 +14,7 @@ const nav = [
   { href: "/broadcasts",  label: "Broadcasts",   icon: Megaphone },
   { href: "/automations", label: "Automations",  icon: Zap },
   { href: "/catalog",     label: "Catalog",      icon: BookOpen },
+  { href: "/documents",   label: "Documents",    icon: Files },
   { href: "/analytics",   label: "Analytics",    icon: BarChart2 },
 ];
 

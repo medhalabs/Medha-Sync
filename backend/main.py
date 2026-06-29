@@ -21,6 +21,8 @@ from features.analytics.router import router as analytics_router
 from features.team.router import router as team_router
 from features.api_keys.router import router as api_keys_router
 from features.bot_config.router import router as bot_config_router
+from features.files.router import router as files_router
+from features.documents.router import router as documents_router
 
 
 @asynccontextmanager
@@ -61,6 +63,8 @@ app.include_router(analytics_router, prefix="/api/analytics", tags=["analytics"]
 app.include_router(team_router, prefix="/api/team", tags=["team"])
 app.include_router(api_keys_router, prefix="/api/api-keys", tags=["api-keys"])
 app.include_router(bot_config_router, prefix="/api/bot/config", tags=["bot_config"])
+app.include_router(files_router, prefix="/api/files", tags=["files"])
+app.include_router(documents_router, prefix="/api/documents", tags=["documents"])
 
 
 @app.get("/health")

@@ -1,0 +1,14 @@
+__pycache__
+*.pyc
+*.pyo
+.venv
+venv
+.git
+.env
+.env.*
+celerybeat-schedule
+*.log
+.pytest_cache
+.mypy_cache
+Dockerfile
+.dockerignore

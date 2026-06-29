@@ -19,6 +19,7 @@ from features.broadcasts.models import Broadcast
 from features.automations.models import AutomationRule
 from features.email.models import EmailAccount
 from features.api_keys.models import ApiKey
+from features.documents.models import Document
 
 config = context.config
 

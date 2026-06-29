@@ -67,7 +67,7 @@ services:
       - ./backend:/app
     command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 
-  celery-worker:
+  celery:
     build:
       context: ./backend
       dockerfile: Dockerfile
@@ -80,22 +80,8 @@ services:
         condition: service_healthy
     volumes:
       - ./backend:/app
-    command: celery -A workers.celery_app worker --loglevel=info --concurrency=4
-
-  celery-beat:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-    restart: unless-stopped
-    env_file: .env
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    volumes:
-      - ./backend:/app
-    command: celery -A workers.celery_app beat --loglevel=info
+    # Single process: worker + scheduler. concurrency=1 keeps RAM low on small droplets.
+    command: celery -A workers.celery_app worker --beat --loglevel=info --concurrency=1
 
   baileys-service:
     build:

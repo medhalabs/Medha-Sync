@@ -1,0 +1,26 @@
+# Production overrides — use on droplet/VPS:
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+#
+# Frontend on Vercel? Leave frontend stopped (profile below).
+# Local full stack with Docker frontend:
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml --profile with-frontend up -d --build
+
+services:
+  frontend:
+    profiles: ["with-frontend"]
+
+  backend:
+    command: uvicorn main:app --host 0.0.0.0 --port 8000
+    volumes: []
+
+  celery:
+    volumes: []
+
+  postgres:
+    ports: []
+
+  redis:
+    ports: []
+
+  minio:
+    ports: []

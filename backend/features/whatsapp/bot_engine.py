@@ -2,6 +2,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from features.whatsapp.session import get_session, set_session, clear_session
 from features.whatsapp.provider import get_whatsapp_adapter
 from core.redis_client import get_redis
+from core.storage import file_fetch_url
 import json
 from features.catalog.service import get_menu_tree, get_catalog_item, list_catalog_items
 from features.contacts.service import create_contact
@@ -274,8 +275,22 @@ async def _send_catalog_item(db, phone, contact_id, conv_id, adapter, item):
     await _save_and_send(db, conv_id, contact_id, phone, adapter, reply)
 
     try:
+        if item.image_url:
+            await adapter.send_image(
+                phone,
+                file_fetch_url(item.image_url),
+                caption=item.title,
+            )
         if item.brochure_url:
-            await adapter.send_document(phone, item.brochure_url, f"{item.title}.pdf", item.description or "")
+            ext = ".pdf"
+            if "." in item.brochure_url.rsplit("/", 1)[-1]:
+                ext = "." + item.brochure_url.rsplit(".", 1)[-1]
+            await adapter.send_document(
+                phone,
+                file_fetch_url(item.brochure_url),
+                f"{item.title}{ext}",
+                item.description or "",
+            )
     except Exception:
         logger.warning("WA delivery failed for catalog item to %s", phone)
 

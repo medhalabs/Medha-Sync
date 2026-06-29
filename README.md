@@ -29,7 +29,25 @@ make up
 make migrate
 ```
 
-Open [http://localhost:3000](http://localhost:3000)
+**Production (droplet/VPS, API only — frontend on Vercel):**
+
+```bash
+make build-prod
+make up-prod
+make migrate
+```
+
+Deploy the `frontend/` folder to [Vercel](https://vercel.com) separately. Set Vercel env vars:
+
+| Variable | Example |
+|----------|---------|
+| `NEXT_PUBLIC_API_URL` | `https://api.yourdomain.com` |
+| `NEXTAUTH_URL` | `https://app.yourdomain.com` |
+| `NEXTAUTH_SECRET` | same as droplet `.env` |
+
+On the droplet `.env`, set `CORS_ORIGINS` to include your Vercel URL and `PUBLIC_API_URL` to your public API URL.
+
+Open [http://localhost:3000](http://localhost:3000) (local dev only)
 
 ## Services
 
