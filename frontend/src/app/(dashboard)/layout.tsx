@@ -1,9 +1,9 @@
-import { getServerSession } from "next-auth";
+import { getSession } from "@/shared/lib/auth";
 import { redirect } from "next/navigation";
 import Sidebar from "@/shared/components/Sidebar";
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const session = await getServerSession();
+  const session = await getSession();
   if (!session) redirect("/login");
   return (
     <div className="flex h-screen overflow-hidden bg-gray-50">

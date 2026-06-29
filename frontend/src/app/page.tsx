@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { getServerSession } from "next-auth";
+import { getSession } from "@/shared/lib/auth";
 import {
   MessageSquare, Inbox, GitBranch, Zap, BookOpen, BarChart2, Megaphone,
   ArrowRight, CheckCircle, Users, Bot, Mail, Sparkles, ChevronRight,
@@ -65,7 +65,7 @@ const stats = [
 ];
 
 export default async function LandingPage() {
-  const session = await getServerSession();
+  const session = await getSession();
   const isLoggedIn = !!session;
 
   return (
