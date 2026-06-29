@@ -1,9 +1,9 @@
 from pydantic import BaseModel
 from datetime import datetime
-from typing import Optional, List
+from typing import Optional
 
 
-class EmailAccountCreate(BaseModel):
+class ImapAccountCreate(BaseModel):
     label: str
     imap_host: str
     imap_port: int = 993
@@ -14,11 +14,26 @@ class EmailAccountCreate(BaseModel):
     smtp_port: int = 587
 
 
+# Keep old name as alias for backwards compat
+EmailAccountCreate = ImapAccountCreate
+
+
+class OAuthCallbackRequest(BaseModel):
+    code: str
+    redirect_uri: str
+
+
+class OAuthAuthorizeOut(BaseModel):
+    authorize_url: str
+
+
 class EmailAccountOut(BaseModel):
     id: str
     label: str
-    imap_host: str
-    username: str
+    provider: str
+    email_address: Optional[str]
+    imap_host: Optional[str]
+    username: Optional[str]
     last_synced_at: Optional[datetime]
     is_active: bool
     created_at: datetime

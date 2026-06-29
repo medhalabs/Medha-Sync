@@ -1,10 +1,10 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import api from "@/shared/lib/api";
 import Badge from "@/shared/components/Badge";
 import EmptyState from "@/shared/components/EmptyState";
-import { Zap, Plus, Play, Pause, Trash2, MessageSquare, Tag, Clock, X, GripVertical, FlaskConical } from "lucide-react";
+import { Zap, Plus, Play, Pause, Trash2, MessageSquare, Tag, Clock, X, GripVertical, FlaskConical, Bot, Save } from "lucide-react";
 import toast from "react-hot-toast";
 
 type Step = { type: string; config: Record<string, any> };
@@ -42,7 +42,7 @@ function StepEditor({ step, onChange, onRemove }: { step: Step; onChange: (s: St
         <select
           value={step.type}
           onChange={(e) => onChange({ type: e.target.value, config: {} })}
-          className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+          className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
         >
           {STEP_TYPES.map((t) => (
             <option key={t.id} value={t.id}>{t.label}</option>
@@ -54,7 +54,7 @@ function StepEditor({ step, onChange, onRemove }: { step: Step; onChange: (s: St
             value={step.config.message || ""}
             onChange={(e) => onChange({ ...step, config: { message: e.target.value } })}
             placeholder="Message to send to the contact…"
-            className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none"
+            className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
           />
         )}
         {step.type === "add_tag" && (
@@ -62,7 +62,7 @@ function StepEditor({ step, onChange, onRemove }: { step: Step; onChange: (s: St
             value={step.config.tag || ""}
             onChange={(e) => onChange({ ...step, config: { tag: e.target.value } })}
             placeholder="Tag name, e.g. hot-lead"
-            className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+            className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
           />
         )}
         {step.type === "wait" && (
@@ -73,7 +73,7 @@ function StepEditor({ step, onChange, onRemove }: { step: Step; onChange: (s: St
               max={300}
               value={step.config.seconds || 5}
               onChange={(e) => onChange({ ...step, config: { seconds: parseInt(e.target.value) || 5 } })}
-              className="w-24 border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+              className="w-24 border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
             <span className="text-sm text-gray-500">seconds</span>
           </div>
@@ -153,6 +153,73 @@ function TestPanel() {
   );
 }
 
+function BotTriggerConfig() {
+  const qc = useQueryClient();
+  const [keyword, setKeyword] = useState("");
+  const [initialized, setInitialized] = useState(false);
+
+  const { data } = useQuery<{ trigger_keyword: string }>({
+    queryKey: ["bot-config"],
+    queryFn: () => api.get("/api/bot/config").then(r => r.data),
+  });
+
+  useEffect(() => {
+    if (data && !initialized) {
+      setKeyword(data.trigger_keyword || "");
+      setInitialized(true);
+    }
+  }, [data, initialized]);
+
+  const saveMutation = useMutation({
+    mutationFn: (kw: string) => api.put("/api/bot/config", { trigger_keyword: kw }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["bot-config"] }); toast.success("Bot trigger keyword saved"); },
+    onError: () => toast.error("Failed to save"),
+  });
+
+  return (
+    <div className="bg-white border border-gray-200 rounded-xl p-5 mb-6">
+      <div className="flex items-center gap-2 mb-1">
+        <Bot className="w-4 h-4 text-blue-500" />
+        <span className="text-sm font-semibold text-gray-900">Bot menu trigger keyword</span>
+      </div>
+      <p className="text-xs text-gray-500 mb-4">
+        When a customer sends this exact word, the bot will show your catalog menu.
+        Any other messages will be regular conversation until this keyword is sent.
+        Leave blank to use the default greeting words (hi, hello, hey…).
+      </p>
+      <div className="flex gap-2 items-end">
+        <div className="flex-1">
+          <label className="block text-xs font-medium text-gray-600 mb-1">Trigger keyword</label>
+          <input
+            value={keyword}
+            onChange={e => setKeyword(e.target.value.toLowerCase())}
+            placeholder="e.g. menu, catalog, services (leave blank for default)"
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          />
+        </div>
+        <button
+          onClick={() => saveMutation.mutate(keyword.trim())}
+          disabled={saveMutation.isPending}
+          className="flex items-center gap-1.5 bg-indigo-600 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-indigo-700 disabled:opacity-50 whitespace-nowrap"
+        >
+          <Save className="w-3.5 h-3.5" />
+          {saveMutation.isPending ? "Saving…" : "Save"}
+        </button>
+      </div>
+      {data?.trigger_keyword && (
+        <p className="text-xs text-green-600 bg-green-50 rounded-lg px-3 py-1.5 mt-3">
+          Active: customers must send "<strong>{data.trigger_keyword}</strong>" to activate the bot menu.
+        </p>
+      )}
+      {!data?.trigger_keyword && initialized && (
+        <p className="text-xs text-gray-400 mt-2">
+          Default mode: any greeting (hi, hello, hey…) activates the menu.
+        </p>
+      )}
+    </div>
+  );
+}
+
 export default function AutomationsView() {
   const [showNew, setShowNew] = useState(false);
   const [form, setForm] = useState(emptyForm());
@@ -198,15 +265,17 @@ export default function AutomationsView() {
   return (
     <div className="p-6">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-xl font-semibold text-gray-900">Automations</h1>
+        <h1 className="text-2xl font-bold text-gray-900">Automations</h1>
         <button
           onClick={() => setShowNew(true)}
-          className="flex items-center gap-2 bg-brand-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-brand-600 transition-colors"
+          className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-indigo-700 transition-colors"
         >
           <Plus className="w-4 h-4" />
           New automation
         </button>
       </div>
+
+      <BotTriggerConfig />
 
       <div className="mb-5">
         <TestPanel />
@@ -284,7 +353,7 @@ export default function AutomationsView() {
                   value={form.name}
                   onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
                   placeholder="e.g. Price inquiry reply"
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 />
               </div>
 
@@ -294,7 +363,7 @@ export default function AutomationsView() {
                   value={form.trigger_config.keyword}
                   onChange={(e) => setForm((f) => ({ ...f, trigger_config: { keyword: e.target.value } }))}
                   placeholder="e.g. price, demo, hi, help"
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 />
                 <p className="text-xs text-gray-400 mt-1">Fires when an inbound message contains this word</p>
               </div>
@@ -332,7 +401,7 @@ export default function AutomationsView() {
               <button
                 onClick={() => createMutation.mutate(form)}
                 disabled={createMutation.isPending || !form.name || !form.trigger_config.keyword}
-                className="flex-1 bg-brand-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-brand-600 disabled:opacity-50"
+                className="flex-1 bg-indigo-600 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-indigo-700 disabled:opacity-50"
               >
                 {createMutation.isPending ? "Saving…" : "Save automation"}
               </button>

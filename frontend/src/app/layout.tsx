@@ -5,7 +5,7 @@ import Providers from "./providers";
 
 const inter = Inter({ subsets: ["latin"] });
 
-export const metadata: Metadata = { title: "Medha Platform", description: "Unified WhatsApp + Email CRM" };
+export const metadata: Metadata = { title: "Medha Sync", description: "WhatsApp CRM for growing businesses" };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (

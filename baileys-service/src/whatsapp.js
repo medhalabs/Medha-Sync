@@ -57,7 +57,10 @@ export async function createWAClient({ sessionDir, onQR, onConnected, onMessage 
         if (fromMe) { console.log("[msg] skipped: fromMe"); continue; }
         if (!msg.message) { console.log("[msg] skipped: no message body"); continue; }
 
-        const phone = jid.replace("@s.whatsapp.net", "").replace("@g.us", "");
+        // Clean phone number for storage/display (digits only)
+        const phone = jid.replace(/@(s\.whatsapp\.net|lid|g\.us)$/, "").replace(/\D/g, "");
+        // Full JID needed to send replies back (especially @lid addresses)
+        const replyJid = jid;
         const messageId = msg.key.id || "";
 
         let text = "";
@@ -73,9 +76,9 @@ export async function createWAClient({ sessionDir, onQR, onConnected, onMessage 
           text = msg.message.templateButtonReplyMessage.selectedId;
         }
 
-        console.log(`[msg] phone=${phone} text="${text}"`);
+        console.log(`[msg] phone=${phone} jid=${replyJid} text="${text}"`);
         if (text) {
-          await onMessage({ phone, text, messageId });
+          await onMessage({ phone, replyJid, text, messageId });
         }
       }
     });

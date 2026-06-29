@@ -2,8 +2,8 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from core.database import get_db
 from core.security import get_current_user_id
-from features.pipeline.schemas import StageCreate, StageOut, DealCreate, DealUpdate, DealOut
-from features.pipeline.service import list_stages, create_stage, list_deals, create_deal, update_deal, delete_deal
+from features.pipeline.schemas import StageCreate, StageUpdate, StageOut, DealCreate, DealUpdate, DealOut
+from features.pipeline.service import list_stages, create_stage, update_stage, delete_stage, list_deals, create_deal, update_deal, delete_deal
 from typing import List, Optional
 
 router = APIRouter()
@@ -17,6 +17,16 @@ async def get_stages(_: str = Depends(get_current_user_id), db: AsyncSession = D
 @router.post("/stages", response_model=StageOut, status_code=201)
 async def add_stage(data: StageCreate, _: str = Depends(get_current_user_id), db: AsyncSession = Depends(get_db)):
     return await create_stage(db, data)
+
+
+@router.patch("/stages/{stage_id}", response_model=StageOut)
+async def patch_stage(stage_id: str, data: StageUpdate, _: str = Depends(get_current_user_id), db: AsyncSession = Depends(get_db)):
+    return await update_stage(db, stage_id, data)
+
+
+@router.delete("/stages/{stage_id}", status_code=204)
+async def remove_stage(stage_id: str, _: str = Depends(get_current_user_id), db: AsyncSession = Depends(get_db)):
+    await delete_stage(db, stage_id)
 
 
 @router.get("/deals", response_model=List[DealOut])

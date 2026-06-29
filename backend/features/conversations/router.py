@@ -3,7 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from core.database import get_db
 from core.security import get_current_user_id
 from features.conversations.schemas import ConversationOut, ConversationUpdate, ConversationPage
-from features.conversations.service import list_conversations, update_conversation
+from features.conversations.service import list_conversations, get_conversation, update_conversation
 from typing import Optional
 
 router = APIRouter()
@@ -21,6 +21,11 @@ async def list_conversations_route(
 ):
     items, total = await list_conversations(db, page, size, channel, status, assigned_to)
     return ConversationPage(items=items, total=total, page=page, size=size)
+
+
+@router.get("/{conv_id}", response_model=ConversationOut)
+async def get_conversation_route(conv_id: str, _: str = Depends(get_current_user_id), db: AsyncSession = Depends(get_db)):
+    return await get_conversation(db, conv_id)
 
 
 @router.patch("/{conv_id}", response_model=ConversationOut)

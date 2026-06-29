@@ -7,6 +7,7 @@ class CatalogItemCreate(BaseModel):
     title: str
     description: Optional[str] = None
     brochure_url: Optional[str] = None
+    link_url: Optional[str] = None
     image_url: Optional[str] = None
     menu_label: str
     parent_id: Optional[str] = None
@@ -17,6 +18,7 @@ class CatalogItemUpdate(BaseModel):
     title: Optional[str] = None
     description: Optional[str] = None
     brochure_url: Optional[str] = None
+    link_url: Optional[str] = None
     image_url: Optional[str] = None
     menu_label: Optional[str] = None
     parent_id: Optional[str] = None
@@ -29,6 +31,7 @@ class CatalogItemOut(BaseModel):
     title: str
     description: Optional[str]
     brochure_url: Optional[str]
+    link_url: Optional[str]
     image_url: Optional[str]
     menu_label: str
     parent_id: Optional[str]

@@ -24,6 +24,7 @@ async function boot() {
     onMessage: async (msg) => {
       try {
         const axios = (await import("axios")).default;
+        // Send replyJid so backend can send replies back to the correct JID
         await axios.post(`${BACKEND_URL}/api/whatsapp/inbound`, msg, { timeout: 10000 });
       } catch (err) {
         console.error("Failed to forward message to backend:", err.message);
@@ -45,12 +46,17 @@ app.get("/status", (req, res) => {
   res.json({ connected: currentQR === null, ready: waClient !== null });
 });
 
+function toJid(phone) {
+  if (phone.includes("@")) return phone; // already a full JID (@lid, @g.us, etc.)
+  return `${phone.replace(/\D/g, "")}@s.whatsapp.net`;
+}
+
 // POST /send/text
 app.post("/send/text", async (req, res) => {
   try {
     const { phone, text } = req.body;
     if (!phone || !text) return res.status(400).json({ error: "phone and text required" });
-    const jid = `${phone.replace(/\D/g, "")}@s.whatsapp.net`;
+    const jid = toJid(phone);
     await waClient.sendMessage(jid, { text });
     res.json({ ok: true });
   } catch (err) {
@@ -63,7 +69,7 @@ app.post("/send/text", async (req, res) => {
 app.post("/send/list", async (req, res) => {
   try {
     const { phone, header, body, sections } = req.body;
-    const jid = `${phone.replace(/\D/g, "")}@s.whatsapp.net`;
+    const jid = toJid(phone);
     await waClient.sendMessage(jid, {
       listMessage: {
         title: header,
@@ -88,7 +94,7 @@ app.post("/send/list", async (req, res) => {
 app.post("/send/document", async (req, res) => {
   try {
     const { phone, url, filename, caption } = req.body;
-    const jid = `${phone.replace(/\D/g, "")}@s.whatsapp.net`;
+    const jid = toJid(phone);
     await waClient.sendMessage(jid, {
       document: { url },
       mimetype: "application/pdf",
@@ -106,7 +112,7 @@ app.post("/send/document", async (req, res) => {
 app.post("/send/image", async (req, res) => {
   try {
     const { phone, url, caption } = req.body;
-    const jid = `${phone.replace(/\D/g, "")}@s.whatsapp.net`;
+    const jid = toJid(phone);
     await waClient.sendMessage(jid, { image: { url }, caption: caption || "" });
     res.json({ ok: true });
   } catch (err) {

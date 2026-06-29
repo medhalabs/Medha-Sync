@@ -2,6 +2,8 @@ from fastapi import APIRouter, Request, Query, HTTPException, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from core.database import get_db
 from core.config import settings
+from core.security import get_current_user_id
+from core.rate_limit import limiter, LIMITS
 from features.whatsapp.bot_engine import handle_inbound
 
 router = APIRouter()
@@ -19,7 +21,13 @@ async def verify_webhook(
 
 
 @router.post("/webhook")
-async def receive_webhook(request: Request, db: AsyncSession = Depends(get_db)):
+@limiter.limit(LIMITS["whatsapp_webhook"])
+async def receive_webhook(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    x_hub_signature: str = Query(None, alias="X-Hub-Signature")
+):
+    """Receive WhatsApp webhook from Meta. Token must be verified."""
     body = await request.json()
     try:
         entry = body.get("entry", [{}])[0]
@@ -43,8 +51,9 @@ async def receive_webhook(request: Request, db: AsyncSession = Depends(get_db)):
                 text = ""
             if phone and text:
                 await handle_inbound(db, phone, text, msg_id)
-    except Exception:
-        pass
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).exception("Webhook processing error")
     return {"status": "ok"}
 
 
@@ -53,10 +62,11 @@ async def inbound_from_baileys(request: Request, db: AsyncSession = Depends(get_
     try:
         body = await request.json()
         phone = body.get("phone")
+        reply_jid = body.get("replyJid") or phone
         text = body.get("text", "")
         msg_id = body.get("messageId")
         if phone and text:
-            await handle_inbound(db, phone, text, msg_id)
+            await handle_inbound(db, phone, text, msg_id, reply_jid=reply_jid)
     except Exception:
         import logging
         logging.getLogger(__name__).exception("Unhandled error in inbound handler")
@@ -64,7 +74,7 @@ async def inbound_from_baileys(request: Request, db: AsyncSession = Depends(get_
 
 
 @router.get("/qr")
-async def get_qr_code():
+async def get_qr_code(_: str = Depends(get_current_user_id)):
     import httpx
     async with httpx.AsyncClient() as client:
         resp = await client.get(f"{settings.BAILEYS_SERVICE_URL}/qr")
@@ -72,8 +82,13 @@ async def get_qr_code():
 
 
 @router.post("/simulate")
-async def simulate_inbound(request: Request, db: AsyncSession = Depends(get_db)):
-    """Simulate an inbound message for testing — bypasses Baileys."""
+@limiter.limit(LIMITS["whatsapp_simulate"])
+async def simulate_inbound(
+    request: Request,
+    _: str = Depends(get_current_user_id),
+    db: AsyncSession = Depends(get_db)
+):
+    """Simulate an inbound message for testing — bypasses Baileys. Requires authentication."""
     body = await request.json()
     phone = body.get("phone", "").strip()
     text = body.get("text", "").strip()
@@ -85,7 +100,7 @@ async def simulate_inbound(request: Request, db: AsyncSession = Depends(get_db))
 
 
 @router.post("/disconnect")
-async def disconnect_whatsapp():
+async def disconnect_whatsapp(_: str = Depends(get_current_user_id)):
     import httpx
     async with httpx.AsyncClient() as client:
         resp = await client.post(f"{settings.BAILEYS_SERVICE_URL}/disconnect", timeout=10)

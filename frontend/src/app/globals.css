@@ -3,4 +3,19 @@
 @tailwind utilities;
 
 * { box-sizing: border-box; }
-body { @apply text-gray-900 bg-gray-50; }
+
+body {
+  @apply text-gray-900 bg-gray-50;
+  font-feature-settings: "cv11", "ss01";
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Smooth scrollbar */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { @apply bg-gray-200 rounded-full; }
+::-webkit-scrollbar-thumb:hover { @apply bg-gray-300; }
+
+/* Focus rings */
+*:focus-visible { @apply outline-none ring-2 ring-indigo-500 ring-offset-1; }

@@ -1,7 +1,9 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from features.whatsapp.session import get_session, set_session, clear_session
 from features.whatsapp.provider import get_whatsapp_adapter
-from features.catalog.service import get_menu_tree, get_catalog_item
+from core.redis_client import get_redis
+import json
+from features.catalog.service import get_menu_tree, get_catalog_item, list_catalog_items
 from features.contacts.service import create_contact
 from features.contacts.schemas import ContactCreate
 from features.conversations.service import get_or_create_conversation
@@ -15,9 +17,26 @@ import logging
 logger = logging.getLogger(__name__)
 
 GREETING_KEYWORDS = {"hi", "hello", "hey", "start", "menu", "help", "hii", "hiii"}
+MAX_MENU_DEPTH = 10  # max nesting levels supported
 
 
-async def handle_inbound(db: AsyncSession, phone: str, message_text: str, wa_message_id: str = None):
+async def _get_bot_config():
+    """Fetch bot config from Redis. Returns default if not set."""
+    redis = await get_redis()
+    val = await redis.get("bot:config")
+    if val:
+        config = json.loads(val)
+        return {
+            "welcome_message": config.get("welcome_message", "Thanks for reaching out! Our team will be in touch with you shortly."),
+            "menu_header": config.get("menu_header", "*Welcome!* 👋"),
+        }
+    return {
+        "welcome_message": "Thanks for reaching out! Our team will be in touch with you shortly.",
+        "menu_header": "*Welcome!* 👋",
+    }
+
+
+async def handle_inbound(db: AsyncSession, phone: str, message_text: str, wa_message_id: str = None, reply_jid: str = None):
     adapter = get_whatsapp_adapter()
 
     # 1. Ensure contact exists
@@ -29,7 +48,7 @@ async def handle_inbound(db: AsyncSession, phone: str, message_text: str, wa_mes
     # 2. Ensure open conversation exists
     conv = await get_or_create_conversation(db, contact.id, ChannelType.whatsapp)
 
-    # 3. Save the inbound message — commit this regardless of what the bot does
+    # 3. Save the inbound message — commit regardless of what bot does
     try:
         await save_message(
             db,
@@ -45,7 +64,7 @@ async def handle_inbound(db: AsyncSession, phone: str, message_text: str, wa_mes
         await db.rollback()
         return
 
-    # 4. Run keyword automations (always, regardless of conversation status)
+    # 4. Run keyword automations
     try:
         from features.automations.service import run_keyword_automations
         await run_keyword_automations(db, contact.id, message_text)
@@ -58,93 +77,214 @@ async def handle_inbound(db: AsyncSession, phone: str, message_text: str, wa_mes
     if conv.status == ConversationStatus.agent:
         return
 
-    # 6. Run bot menu logic (errors here are best-effort — message is already saved)
+    # 6. Run bot menu logic (best-effort — message already saved)
+    # Use reply_jid (full JID incl. @lid) for sending; fall back to phone
+    send_to = reply_jid or phone
     try:
-        await _run_bot(db, phone, message_text, contact.id, conv.id, adapter)
+        await _run_bot(db, send_to, message_text, contact.id, conv.id, adapter)
     except Exception:
         logger.exception("Bot engine error for phone %s", phone)
 
 
+async def _get_trigger_keyword() -> str:
+    try:
+        redis = await get_redis()
+        val = await redis.get("bot:config")
+        if val:
+            return json.loads(val).get("trigger_keyword", "").strip().lower()
+    except Exception:
+        pass
+    return ""
+
+
 async def _run_bot(db, phone, message_text, contact_id, conv_id, adapter):
     session = await get_session(phone)
-    text_lower = message_text.strip().lower()
+    text = message_text.strip()
+    text_lower = text.lower()
 
-    # Greeting or no session → show main menu
-    if text_lower in GREETING_KEYWORDS or not session:
+    trigger_keyword = await _get_trigger_keyword()
+
+    if trigger_keyword:
+        # Custom trigger mode: only the configured keyword (or being in a session) activates the bot
+        if not session:
+            if text_lower == trigger_keyword:
+                await _send_main_menu(db, phone, contact_id, conv_id, adapter)
+            # else: normal conversation — message already saved, no bot reply
+            return
+        # If already in a session and they send the trigger keyword → restart menu
+        if text_lower == trigger_keyword:
+            await clear_session(phone)
+            await _send_main_menu(db, phone, contact_id, conv_id, adapter)
+            return
+    else:
+        # Default mode: standard greeting keywords trigger the menu
+        if text_lower in GREETING_KEYWORDS or not session:
+            await _send_main_menu(db, phone, contact_id, conv_id, adapter)
+            return
+
+    node = session.get("node")
+    items_ids = session.get("items", [])
+
+    # Number reply: works for both main_menu and sub_menu
+    current_depth = session.get("depth", 0)
+    if text.isdigit() and items_ids:
+        idx = int(text) - 1
+        if 0 <= idx < len(items_ids):
+            item = await get_catalog_item(db, items_ids[idx])
+            if item:
+                # Check if this item has children and depth limit not reached
+                children = await list_catalog_items(db, parent_id=item.id)
+                active_children = [c for c in children if c.is_active]
+                if active_children and current_depth < MAX_MENU_DEPTH - 1:
+                    await _send_sub_menu(db, phone, contact_id, conv_id, adapter, item, active_children, depth=current_depth + 1)
+                else:
+                    await _send_catalog_item(db, phone, contact_id, conv_id, adapter, item)
+                    await clear_session(phone)
+                return
+        # Out-of-range number → re-show current menu
+        await _resend_current_menu(db, phone, contact_id, conv_id, adapter, session)
+        return
+
+    # ID-based selection from interactive list
+    if node in ("main_menu", "sub_menu") and len(text) > 10:
+        item = await get_catalog_item(db, text)
+        if item:
+            children = await list_catalog_items(db, parent_id=item.id)
+            active_children = [c for c in children if c.is_active]
+            if active_children:
+                await _send_sub_menu(db, phone, contact_id, conv_id, adapter, item, active_children)
+            else:
+                await _send_catalog_item(db, phone, contact_id, conv_id, adapter, item)
+                await clear_session(phone)
+            return
+
+    # "back" in sub-menu → go back to main menu
+    if text_lower in {"back", "0", "main", "home"} and node == "sub_menu":
         await _send_main_menu(db, phone, contact_id, conv_id, adapter)
         return
 
-    # Number selection from text-based fallback menu
-    if text_lower.isdigit() and session.get("items"):
-        idx = int(text_lower) - 1
-        items = session.get("items", [])
-        if 0 <= idx < len(items):
-            item = await get_catalog_item(db, items[idx])
-            if item:
-                await _send_catalog_item(db, phone, contact_id, conv_id, adapter, item)
-                await clear_session(phone)
-                return
+    # Unrecognised → re-show current menu
+    await _resend_current_menu(db, phone, contact_id, conv_id, adapter, session)
 
-    # ID-based selection (from interactive list)
-    if session.get("node") == "main_menu":
-        item = await get_catalog_item(db, message_text.strip())
-        if item:
-            await _send_catalog_item(db, phone, contact_id, conv_id, adapter, item)
-            await clear_session(phone)
+
+async def _resend_current_menu(db, phone, contact_id, conv_id, adapter, session):
+    node = session.get("node") if session else None
+    if node == "sub_menu":
+        parent_id = session.get("parent_id")
+        parent_title = session.get("parent_title", "")
+        items_ids = session.get("items", [])
+        # Reload children
+        from features.catalog.models import CatalogItem
+        from sqlalchemy import select as sa_select
+        result = await db.execute(sa_select(CatalogItem).where(CatalogItem.id.in_(items_ids), CatalogItem.is_active == True))
+        children = result.scalars().all()
+        if children:
+            # Fake a parent object with title
+            class _FakeItem:
+                title = parent_title
+                id = parent_id
+            await _send_sub_menu(db, phone, contact_id, conv_id, adapter, _FakeItem(), children, resend=True)
             return
-
-    # Unrecognised input → re-show menu
     await _send_main_menu(db, phone, contact_id, conv_id, adapter)
-
-
-async def _send_catalog_item(db, phone, contact_id, conv_id, adapter, item):
-    if item.brochure_url:
-        await adapter.send_document(phone, item.brochure_url, f"{item.title}.pdf", item.description or "")
-        reply = f"Here is the brochure for *{item.title}*.\n\nType *menu* to see all services."
-    else:
-        reply = f"*{item.title}*\n\n{item.description or 'No details available.'}\n\nType *menu* to see all services."
-    await adapter.send_text(phone, reply)
-    await save_message(db, conv_id, contact_id, MessageDirection.outbound, reply)
-    await db.commit()
 
 
 async def _send_main_menu(db, phone, contact_id, conv_id, adapter):
     tree = await get_menu_tree(db)
+    config = await _get_bot_config()
 
     if not tree:
-        reply = "Welcome to Medha! Our team will be in touch with you shortly."
-        await adapter.send_text(phone, reply)
-        await save_message(db, conv_id, contact_id, MessageDirection.outbound, reply)
-        await db.commit()
+        reply = config["welcome_message"]
+        await _save_and_send(db, conv_id, contact_id, phone, adapter, reply)
         return
 
-    item_ids = [str(item.id) for item in tree[:10]]
+    item_ids = [str(item.id) for item in tree]
 
-    # Try interactive list (WhatsApp Business accounts)
+    lines = [f"{config['menu_header']}\n\nReply with a number:\n"]
+    for i, item in enumerate(tree, 1):
+        children = await list_catalog_items(db, parent_id=item.id)
+        has_sub = any(c.is_active for c in children)
+        suffix = " ›" if has_sub else ""
+        lines.append(f"*{i}.* {item.title}{suffix}")
+    lines.append("\nType *menu* anytime to return here.")
+    text_menu = "\n".join(lines)
+
+    await _save_and_send(db, conv_id, contact_id, phone, adapter, text_menu)
+
+    # Try interactive list (Business API only — non-fatal if fails)
     rows = [
         {"id": str(item.id), "title": item.title[:24], "description": (item.description or "")[:72]}
-        for item in tree[:10]
+        for item in tree
     ]
-    sections = [{"title": "Our Services", "rows": rows}]
-
-    sent_interactive = False
     try:
         await adapter.send_interactive_list(
-            phone, "Welcome to Medha", "Please select a service to learn more:", sections
+            phone, config["menu_header"].replace("*", "").replace("👋", "").strip(), "Please select a service:", [{"title": "Our Services", "rows": rows}]
         )
-        sent_interactive = True
     except Exception:
-        logger.warning("Interactive list failed for %s — falling back to text menu", phone)
-
-    if not sent_interactive:
-        # Text-based numbered menu (works on all WhatsApp accounts)
-        menu_lines = ["*Welcome to Medha!*\n\nReply with a number to learn more:\n"]
-        for i, item in enumerate(tree[:10], 1):
-            menu_lines.append(f"*{i}.* {item.title}")
-        menu_lines.append("\nReply with a number, e.g. *1*")
-        reply = "\n".join(menu_lines)
-        await adapter.send_text(phone, reply)
-        await save_message(db, conv_id, contact_id, MessageDirection.outbound, reply)
-        await db.commit()
+        pass  # text fallback already sent above
 
     await set_session(phone, {"node": "main_menu", "items": item_ids})
+
+
+async def _send_sub_menu(db, phone, contact_id, conv_id, adapter, parent_item, children, resend=False, depth=1):
+    item_ids = [str(c.id) for c in children]
+
+    lines = [f"*{parent_item.title}*\n\nChoose an option:\n"]
+    for i, child in enumerate(children, 1):
+        # Only show › if depth allows going deeper
+        has_sub = False
+        if depth < MAX_MENU_DEPTH - 1:
+            grandchildren = await list_catalog_items(db, parent_id=child.id)
+            has_sub = any(g.is_active for g in grandchildren)
+        suffix = " ›" if has_sub else ""
+        lines.append(f"*{i}.* {child.title}{suffix}")
+    lines.append("\nType *0* or *back* to return to main menu.")
+    text_menu = "\n".join(lines)
+
+    await _save_and_send(db, conv_id, contact_id, phone, adapter, text_menu)
+
+    rows = [
+        {"id": str(c.id), "title": c.title[:24], "description": (c.description or "")[:72]}
+        for c in children
+    ]
+    try:
+        await adapter.send_interactive_list(
+            phone, parent_item.title, "Select an option:", [{"title": parent_item.title, "rows": rows}]
+        )
+    except Exception:
+        pass
+
+    await set_session(phone, {
+        "node": "sub_menu",
+        "items": item_ids,
+        "depth": depth,
+        "parent_id": str(parent_item.id),
+        "parent_title": parent_item.title,
+    })
+
+
+async def _send_catalog_item(db, phone, contact_id, conv_id, adapter, item):
+    parts = [f"*{item.title}*"]
+    if item.description:
+        parts.append(item.description)
+    if item.link_url:
+        parts.append(f"🔗 {item.link_url}")
+    parts.append("\nType *menu* to see all services.")
+    reply = "\n\n".join(parts)
+
+    await _save_and_send(db, conv_id, contact_id, phone, adapter, reply)
+
+    try:
+        if item.brochure_url:
+            await adapter.send_document(phone, item.brochure_url, f"{item.title}.pdf", item.description or "")
+    except Exception:
+        logger.warning("WA delivery failed for catalog item to %s", phone)
+
+
+async def _save_and_send(db, conv_id, contact_id, phone, adapter, text):
+    """Save outbound message to DB first, then attempt WA delivery."""
+    await save_message(db, conv_id, contact_id, MessageDirection.outbound, text)
+    await db.commit()
+    try:
+        await adapter.send_text(phone, text)
+    except Exception:
+        logger.warning("WA text delivery failed to %s", phone)

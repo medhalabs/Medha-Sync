@@ -12,6 +12,7 @@ class CatalogItem(Base):
     title: Mapped[str] = mapped_column(String)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     brochure_url: Mapped[str | None] = mapped_column(String, nullable=True)
+    link_url: Mapped[str | None] = mapped_column(String, nullable=True)
     image_url: Mapped[str | None] = mapped_column(String, nullable=True)
     menu_label: Mapped[str] = mapped_column(String)
     parent_id: Mapped[str | None] = mapped_column(String, nullable=True)

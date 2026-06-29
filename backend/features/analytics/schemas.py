@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import List, Dict, Any
+from typing import List
 
 
 class OverviewStats(BaseModel):
@@ -9,6 +9,10 @@ class OverviewStats(BaseModel):
     email_conversations: int
     open_conversations: int
     resolved_today: int
+    total_messages: int
+    messages_today: int
+    bot_conversations: int
+    agent_conversations: int
 
 
 class ChannelVolume(BaseModel):
@@ -17,6 +21,13 @@ class ChannelVolume(BaseModel):
     email: int
 
 
+class ConversationStatusBreakdown(BaseModel):
+    bot: int
+    agent: int
+    resolved: int
+
+
 class AnalyticsOut(BaseModel):
     overview: OverviewStats
     volume_last_7_days: List[ChannelVolume]
+    status_breakdown: ConversationStatusBreakdown

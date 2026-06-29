@@ -19,6 +19,12 @@ class StageOut(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class StageUpdate(BaseModel):
+    name: Optional[str] = None
+    color: Optional[str] = None
+    position: Optional[int] = None
+
+
 class DealCreate(BaseModel):
     contact_id: str
     stage_id: str
