@@ -3,9 +3,10 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/shared/lib/utils";
 import {
-  Inbox, Users, GitBranch, Megaphone, Zap, BookOpen, BarChart2, Settings, LogOut, MessageSquare, Files, X,
+  Inbox, Users, GitBranch, Megaphone, Zap, BookOpen, BarChart2, Settings, LogOut, Files, X,
 } from "lucide-react";
 import { signOut, useSession } from "next-auth/react";
+import Logo from "@/shared/components/Logo";
 
 const nav = [
   { href: "/inbox",       label: "Inbox",       icon: Inbox },
@@ -42,9 +43,7 @@ export default function Sidebar({ mobileOpen = false, onMobileClose }: SidebarPr
     >
       {/* Logo */}
       <div className="h-16 flex items-center px-5 border-b border-gray-800 safe-top">
-        <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg mr-3 flex-shrink-0">
-          <MessageSquare className="w-4 h-4 text-white" />
-        </div>
+        <Logo variant="icon" size="sm" href="/inbox" className="mr-3 flex-shrink-0" />
         <div className="flex-1">
           <div className="flex items-center gap-2">
             <span className="font-bold text-white text-sm tracking-tight">Medha Sync</span>

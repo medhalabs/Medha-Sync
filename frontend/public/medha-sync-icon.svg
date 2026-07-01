@@ -1,0 +1,20 @@
+<svg viewBox="0 0 280 280" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Medha Sync">
+  <defs>
+    <linearGradient id="iconGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#378ADD"/>
+      <stop offset="100%" stop-color="#7F77DD"/>
+    </linearGradient>
+  </defs>
+  <rect x="20" y="20" width="240" height="240" rx="54" fill="url(#iconGrad)"/>
+  <rect x="68" y="58" width="132" height="96" rx="24" fill="#FFFFFF" opacity="0.97"/>
+  <polygon points="86,152 70,182 102,154" fill="#FFFFFF" opacity="0.97"/>
+  <circle cx="104" cy="106" r="6.5" fill="#534AB7"/>
+  <circle cx="134" cy="106" r="6.5" fill="#534AB7"/>
+  <circle cx="164" cy="106" r="6.5" fill="#534AB7"/>
+  <g fill="none" stroke="#FFFFFF" stroke-width="7" stroke-linecap="round">
+    <path d="M 168 176 A 30 30 0 1 1 172 206"/>
+    <polygon points="168,164 168,188 148,176" fill="#FFFFFF" stroke="none"/>
+    <path d="M 202 216 A 30 30 0 1 1 198 186"/>
+    <polygon points="202,228 202,204 222,216" fill="#FFFFFF" stroke="none"/>
+  </g>
+</svg>

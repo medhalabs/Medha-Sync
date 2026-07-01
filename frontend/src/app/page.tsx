@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { getSession } from "@/shared/lib/auth";
+import Logo from "@/shared/components/Logo";
 import {
-  MessageSquare, Inbox, GitBranch, Zap, BookOpen, BarChart2, Megaphone,
+  Inbox, GitBranch, Zap, BookOpen, BarChart2, Megaphone,
   ArrowRight, CheckCircle, Users, Bot, Mail, Sparkles, ChevronRight,
 } from "lucide-react";
 
@@ -74,14 +75,9 @@ export default async function LandingPage() {
       {/* ── Nav ── */}
       <nav className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-100">
         <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center shadow-sm">
-              <MessageSquare className="w-4 h-4 text-white" />
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="font-bold text-gray-900 text-base tracking-tight">Medha Sync</span>
-              <span className="text-xs font-bold text-orange-600 bg-orange-50 border border-orange-200 px-2 py-0.5 rounded-full">BETA</span>
-            </div>
+          <div className="flex items-center gap-3">
+            <Logo variant="full" size="sm" href="/" />
+            <span className="text-xs font-bold text-orange-600 bg-orange-50 border border-orange-200 px-2 py-0.5 rounded-full">BETA</span>
           </div>
           <div className="hidden md:flex items-center gap-8 text-sm text-gray-600 font-medium">
             <a href="#features" className="hover:text-indigo-600 transition-colors">Features</a>
@@ -286,15 +282,10 @@ export default async function LandingPage() {
         <div className="max-w-6xl mx-auto">
           <div className="flex flex-col md:flex-row items-start justify-between gap-8 mb-10">
             <div>
-              <div className="flex items-center gap-2.5 mb-3">
-                <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center">
-                  <MessageSquare className="w-4 h-4 text-white" />
-                </div>
-                <span className="font-bold text-gray-900">Medha Sync</span>
-              </div>
+              <Logo variant="full" size="sm" href="/" className="mb-3" />
               <p className="text-sm text-gray-500 max-w-xs">WhatsApp CRM for growing businesses. Automate, manage, and scale customer conversations.</p>
             </div>
-            <div className="grid grid-cols-2 gap-8 text-sm">
+            <div className="grid grid-cols-3 gap-8 text-sm">
               <div>
                 <p className="font-semibold text-gray-900 mb-3">Product</p>
                 <ul className="space-y-2 text-gray-500">
@@ -309,6 +300,13 @@ export default async function LandingPage() {
                   {!isLoggedIn && <li><Link href="/register" className="hover:text-indigo-600 transition-colors">Register</Link></li>}
                   <li><Link href="/login" className="hover:text-indigo-600 transition-colors">Sign in</Link></li>
                   {isLoggedIn && <li><Link href="/inbox" className="hover:text-indigo-600 transition-colors">Dashboard</Link></li>}
+                </ul>
+              </div>
+              <div>
+                <p className="font-semibold text-gray-900 mb-3">Legal</p>
+                <ul className="space-y-2 text-gray-500">
+                  <li><Link href="/privacy" className="hover:text-indigo-600 transition-colors">Privacy policy</Link></li>
+                  <li><Link href="/terms" className="hover:text-indigo-600 transition-colors">Terms of service</Link></li>
                 </ul>
               </div>
             </div>

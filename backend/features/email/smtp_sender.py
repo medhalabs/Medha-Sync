@@ -65,6 +65,17 @@ async def _send_gmail_api(account: EmailAccount, access_token: str, to: str, sub
         )
         if resp.status_code == 401:
             raise PermissionError("gmail_token_expired")
+        if resp.status_code == 403:
+            try:
+                detail = resp.json().get("error", {}).get("message", resp.text)
+            except Exception:
+                detail = resp.text
+            if "accessNotConfigured" in resp.text or "Gmail API has not been used" in detail:
+                raise ValueError(
+                    "Gmail API is not enabled for your Google Cloud project. "
+                    "Enable it at console.cloud.google.com → APIs & Services → Gmail API, then retry."
+                )
+            raise ValueError(detail or "Gmail API rejected the send request")
         resp.raise_for_status()
 
 

@@ -1,7 +1,8 @@
 "use client";
 import { useState } from "react";
 import Sidebar from "@/shared/components/Sidebar";
-import { Menu, MessageSquare } from "lucide-react";
+import Logo from "@/shared/components/Logo";
+import { Menu } from "lucide-react";
 
 export default function DashboardShell({ children }: { children: React.ReactNode }) {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
@@ -27,10 +28,8 @@ export default function DashboardShell({ children }: { children: React.ReactNode
           >
             <Menu className="w-5 h-5" />
           </button>
-          <div className="flex items-center gap-2 min-w-0">
-            <div className="w-7 h-7 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center flex-shrink-0">
-              <MessageSquare className="w-3.5 h-3.5 text-white" />
-            </div>
+          <div className="flex items-center gap-2 min-w-0 flex-1">
+            <Logo variant="icon" size="xs" href="/inbox" />
             <span className="font-bold text-gray-900 text-sm truncate">Medha Sync</span>
           </div>
         </header>

@@ -5,7 +5,14 @@ import Providers from "./providers";
 
 const inter = Inter({ subsets: ["latin"] });
 
-export const metadata: Metadata = { title: "Medha Sync", description: "WhatsApp CRM for growing businesses" };
+export const metadata: Metadata = {
+  title: "Medha Sync",
+  description: "All your messages, synced — WhatsApp CRM for growing businesses",
+  icons: {
+    icon: "/medha-sync-icon.svg",
+    apple: "/medha-sync-logo.png",
+  },
+};
 
 export const viewport: Viewport = {
   width: "device-width",

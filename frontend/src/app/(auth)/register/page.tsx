@@ -4,8 +4,9 @@ import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import toast from "react-hot-toast";
-import { MessageSquare, Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff } from "lucide-react";
 import GoogleSignInButton from "@/shared/components/GoogleSignInButton";
+import Logo from "@/shared/components/Logo";
 import { apiUrl } from "@/shared/lib/api-base";
 
 export default function RegisterPage() {
@@ -47,9 +48,7 @@ export default function RegisterPage() {
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-12 h-12 bg-indigo-600 rounded-2xl mb-4 shadow-lg shadow-indigo-200">
-            <MessageSquare className="w-6 h-6 text-white" />
-          </div>
+          <Logo variant="icon" size="lg" href="/" className="mx-auto mb-4 shadow-lg shadow-indigo-200/60" />
           <h1 className="text-2xl font-bold text-gray-900">Create your account</h1>
           <p className="text-gray-500 mt-1 text-sm">Start managing WhatsApp conversations</p>
         </div>
