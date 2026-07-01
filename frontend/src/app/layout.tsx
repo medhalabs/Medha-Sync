@@ -6,6 +6,7 @@ import Providers from "./providers";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://www.medhasync.in"),
   title: "Medha Sync",
   description: "All your messages, synced — WhatsApp CRM for growing businesses",
   icons: {

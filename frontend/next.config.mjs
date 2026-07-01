@@ -1,6 +1,6 @@
-if (process.env.VERCEL === "1" && !process.env.NEXTAUTH_SECRET) {
+if (process.env.NODE_ENV === "production" && !process.env.NEXTAUTH_SECRET && process.env.DOCKER_BUILD !== "1") {
   throw new Error(
-    "NEXTAUTH_SECRET is missing. Add it in Vercel → Settings → Environment Variables (Production), then redeploy."
+    "NEXTAUTH_SECRET is missing. Set it in your hosting environment variables, then redeploy."
   );
 }
 

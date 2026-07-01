@@ -7,8 +7,8 @@ Guide for pushing code from GitHub to a VPS and running the production stack.
 | Where | What runs |
 |-------|-----------|
 | **Droplet** | Backend API, Postgres, Redis, MinIO, Celery, Baileys |
-| **Vercel** (recommended) | Next.js frontend |
-| **DNS** | `api.yourdomain.com` → droplet, `app.yourdomain.com` → Vercel |
+| **https://www.medhasync.in** | Next.js frontend (custom domain) |
+| **DNS** | `www.medhasync.in` → frontend host, API on droplet IP `:8000` (proxied via `/api/proxy`) |
 
 You can also run the frontend on the droplet — see [Frontend options](#frontend-options).
 
@@ -87,13 +87,13 @@ CELERY_RESULT_BACKEND=redis://redis:6379/2
 BAILEYS_SERVICE_URL=http://baileys-service:3001
 
 # Public URLs
-PUBLIC_API_URL=https://api.yourdomain.com
-CORS_ORIGINS=["https://app.yourdomain.com"]
+PUBLIC_API_URL=http://YOUR_DROPLET_IP:8000
+CORS_ORIGINS=["https://www.medhasync.in","https://medhasync.in"]
 
-# OAuth callbacks (match your frontend URL)
-GOOGLE_REDIRECT_URI=https://app.yourdomain.com/settings/email-callback
-GOOGLE_AUTH_REDIRECT_URI=https://app.yourdomain.com/auth/google/callback
-MICROSOFT_REDIRECT_URI=https://app.yourdomain.com/settings/email-callback
+# OAuth callbacks (match https://www.medhasync.in)
+GOOGLE_REDIRECT_URI=https://www.medhasync.in/settings/email-callback
+GOOGLE_AUTH_REDIRECT_URI=https://www.medhasync.in/auth/google/callback
+MICROSOFT_REDIRECT_URI=https://www.medhasync.in/settings/email-callback
 
 WA_PROVIDER=baileys
 ```
@@ -165,23 +165,20 @@ ufw enable
 
 ---
 
-## Frontend options
+## Frontend (https://www.medhasync.in)
 
-### Option A — Vercel (recommended)
-
-1. Import the repo on [vercel.com](https://vercel.com)
-2. Set **Root Directory** to `frontend`
-3. Environment variables:
+The Next.js app is served at **[https://www.medhasync.in](https://www.medhasync.in)**. Set these environment variables on your frontend host:
 
 | Variable | Value |
 |----------|--------|
-| `NEXT_PUBLIC_API_URL` | `https://api.yourdomain.com` |
-| `NEXTAUTH_URL` | `https://app.yourdomain.com` |
+| `NEXT_PUBLIC_API_URL` | `http://YOUR_DROPLET_IP:8000` |
+| `NEXTAUTH_URL` | `https://www.medhasync.in` |
 | `NEXTAUTH_SECRET` | same as droplet `.env` |
+| `BACKEND_URL` | `http://YOUR_DROPLET_IP:8000` |
 
-4. Point **`app.yourdomain.com`** to Vercel
+The frontend proxies HTTPS API calls to the droplet via `/api/proxy` (see `frontend/next.config.mjs`).
 
-### Option B — Docker frontend on the droplet
+### Optional — Docker frontend on the droplet
 
 ```bash
 docker-compose -f docker-compose.yml -f docker-compose.prod.yml --profile with-frontend up -d --build
@@ -293,13 +290,13 @@ docker-compose -f docker-compose.yml -f docker-compose.prod.yml down --remove-or
 docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d
 ```
 
-### CORS errors (Vercel frontend + droplet API)
+### CORS errors (frontend + droplet API)
 
 On the droplet `.env`:
 
 ```env
-CORS_ORIGINS=["https://your-app.vercel.app"]
-PUBLIC_API_URL=https://api.yourdomain.com
+CORS_ORIGINS=["https://www.medhasync.in","https://medhasync.in"]
+PUBLIC_API_URL=http://YOUR_DROPLET_IP:8000
 ```
 
 Restart backend after changing `.env`:
@@ -312,8 +309,8 @@ docker-compose restart backend
 
 Google Cloud Console and Azure App Registration redirect URIs must exactly match:
 
-- `https://app.yourdomain.com/settings/email-callback`
-- `https://app.yourdomain.com/auth/google/callback`
+- `https://www.medhasync.in/settings/email-callback`
+- `https://www.medhasync.in/auth/google/callback`
 
 ---
 

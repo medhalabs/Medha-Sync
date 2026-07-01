@@ -349,13 +349,13 @@ cd frontend && npm run build
 2. Baileys running: http://localhost:3001/qr
 3. Scan QR with WhatsApp on your phone
 
-**CORS errors (Vercel + droplet API)**
+**CORS errors (frontend + droplet API)**
 
 Set on the droplet:
 
 ```env
-CORS_ORIGINS=["https://your-app.vercel.app"]
-PUBLIC_API_URL=https://api.yourdomain.com
+CORS_ORIGINS=["https://www.medhasync.in","https://medhasync.in"]
+PUBLIC_API_URL=http://YOUR_DROPLET_IP:8000
 ```
 
 ---

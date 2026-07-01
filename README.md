@@ -29,7 +29,7 @@ make up
 make migrate
 ```
 
-**Production (droplet/VPS, API only — frontend on Vercel):**
+**Production (droplet API + [https://www.medhasync.in](https://www.medhasync.in)):**
 
 See **[DEPLOY.md](./DEPLOY.md)** for full droplet setup, HTTPS, and update commands.
 
@@ -41,15 +41,16 @@ make migrate
 
 > On some droplets only `docker-compose` (hyphenated) is installed — use the commands in [DEPLOY.md](./DEPLOY.md) instead of `make`.
 
-Deploy the `frontend/` folder to [Vercel](https://vercel.com) separately. Set Vercel env vars:
+Set frontend environment variables (hosting provider for www.medhasync.in):
 
-| Variable | Example |
+| Variable | Value |
 |----------|---------|
-| `NEXT_PUBLIC_API_URL` | `https://api.yourdomain.com` |
-| `NEXTAUTH_URL` | `https://app.yourdomain.com` |
+| `NEXT_PUBLIC_API_URL` | `http://YOUR_DROPLET_IP:8000` |
+| `NEXTAUTH_URL` | `https://www.medhasync.in` |
 | `NEXTAUTH_SECRET` | same as droplet `.env` |
+| `BACKEND_URL` | `http://YOUR_DROPLET_IP:8000` |
 
-On the droplet `.env`, set `CORS_ORIGINS` to include your Vercel URL and `PUBLIC_API_URL` to your public API URL.
+On the droplet `.env`, set `CORS_ORIGINS` to include `https://www.medhasync.in` and `PUBLIC_API_URL` to your droplet API URL.
 
 Open [http://localhost:3000](http://localhost:3000) (local dev only)
 
