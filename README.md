@@ -31,11 +31,15 @@ make migrate
 
 **Production (droplet/VPS, API only — frontend on Vercel):**
 
+See **[DEPLOY.md](./DEPLOY.md)** for full droplet setup, HTTPS, and update commands.
+
 ```bash
 make build-prod
 make up-prod
 make migrate
 ```
+
+> On some droplets only `docker-compose` (hyphenated) is installed — use the commands in [DEPLOY.md](./DEPLOY.md) instead of `make`.
 
 Deploy the `frontend/` folder to [Vercel](https://vercel.com) separately. Set Vercel env vars:
 

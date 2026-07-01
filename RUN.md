@@ -93,11 +93,15 @@ docker compose down
 
 **Production droplet (no frontend container — use Vercel for UI):**
 
+See **[DEPLOY.md](./DEPLOY.md)** for the full guide (first-time setup, HTTPS, git pull fixes, `docker-compose` commands).
+
 ```bash
 make build-prod
 make up-prod
 make migrate
 ```
+
+On droplets where `make` fails, use `docker-compose` — details in [DEPLOY.md](./DEPLOY.md).
 
 **Production with Docker frontend:**
 
@@ -365,5 +369,5 @@ All at once (local):      docker compose up -d postgres redis minio
 Infra only:               docker compose up -d postgres redis minio
 Single Docker service:    docker compose up -d <service-name>
 Stop all:                 make down
-Production (API only):    make build-prod && make up-prod && make migrate
+Production (API only):    see DEPLOY.md (droplet) or make build-prod && make up-prod && make migrate
 ```

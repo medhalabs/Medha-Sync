@@ -36,27 +36,36 @@ def _build_mime(from_addr: str, to: str, subject: str, body: str, attachments: l
     return msg
 
 
+SMTP_TIMEOUT_SECONDS = 30
+
+
+def _encode_gmail_raw(msg: MIMEMultipart) -> str:
+    return base64.urlsafe_b64encode(msg.as_bytes()).decode().rstrip("=")
+
+
 def _send_smtp_plain(account: EmailAccount, password: str, to: str, subject: str, body: str, attachments: list[AttachmentPayload]):
     from_addr = account.username or account.email_address
     msg = _build_mime(from_addr, to, subject, body, attachments)
-    with smtplib.SMTP(account.smtp_host, account.smtp_port) as server:
+    with smtplib.SMTP(account.smtp_host, account.smtp_port, timeout=SMTP_TIMEOUT_SECONDS) as server:
         server.starttls()
         server.login(from_addr, password)
         server.sendmail(from_addr, [to], msg.as_string())
 
 
-def _send_smtp_gmail_oauth(account: EmailAccount, access_token: str, to: str, subject: str, body: str, attachments: list[AttachmentPayload]):
+async def _send_gmail_api(account: EmailAccount, access_token: str, to: str, subject: str, body: str, attachments: list[AttachmentPayload]):
+    """Send via Gmail REST API (HTTPS). SMTP port 587 is blocked from many cloud Docker networks."""
     from_addr = account.email_address
     msg = _build_mime(from_addr, to, subject, body, attachments)
-    auth_string = base64.b64encode(f"user={from_addr}\x01auth=Bearer {access_token}\x01\x01".encode()).decode()
-    with smtplib.SMTP("smtp.gmail.com", 587) as server:
-        server.ehlo()
-        server.starttls()
-        server.ehlo()
-        code, response = server.docmd("AUTH", "XOAUTH2 " + auth_string)
-        if code != 235:
-            raise smtplib.SMTPAuthenticationError(code, response)
-        server.sendmail(from_addr, [to], msg.as_string())
+    headers = {"Authorization": f"Bearer {access_token}", "Content-Type": "application/json"}
+    async with httpx.AsyncClient(timeout=60) as client:
+        resp = await client.post(
+            "https://gmail.googleapis.com/gmail/v1/users/me/messages/send",
+            headers=headers,
+            json={"raw": _encode_gmail_raw(msg)},
+        )
+        if resp.status_code == 401:
+            raise PermissionError("gmail_token_expired")
+        resp.raise_for_status()
 
 
 async def _send_outlook_graph(account: EmailAccount, access_token: str, to: str, subject: str, body: str, attachments: list[AttachmentPayload]):
@@ -126,7 +135,7 @@ async def send_email(
     attachments: list[dict] | None = None,
     db: AsyncSession | None = None,
 ):
-    """Send email via SMTP (plain/Gmail OAuth) or Microsoft Graph (Outlook)."""
+    """Send email via Gmail API, Microsoft Graph (Outlook), or SMTP (IMAP accounts)."""
     attachment_payloads = load_attachment_payloads(attachments or [])
     loop = asyncio.get_event_loop()
 
@@ -135,16 +144,12 @@ async def send_email(
         if not access_token:
             raise ValueError("No Gmail access token configured")
         try:
-            await loop.run_in_executor(
-                None, _send_smtp_gmail_oauth, account, access_token, to, subject, body, attachment_payloads
-            )
-        except smtplib.SMTPAuthenticationError:
+            await _send_gmail_api(account, access_token, to, subject, body, attachment_payloads)
+        except PermissionError:
             if not db:
                 raise
             access_token = await _refresh_access_token(db, account)
-            await loop.run_in_executor(
-                None, _send_smtp_gmail_oauth, account, access_token, to, subject, body, attachment_payloads
-            )
+            await _send_gmail_api(account, access_token, to, subject, body, attachment_payloads)
 
     elif account.provider == "outlook":
         access_token = get_decrypted_access_token(account)
