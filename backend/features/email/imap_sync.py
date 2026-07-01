@@ -17,6 +17,7 @@ from features.messages.models import MessageDirection, MessageType
 from features.contacts.service import create_contact
 from features.contacts.schemas import ContactCreate
 from features.email.token_crypto import encrypt
+from features.email.body_utils import normalize_email_body
 from core.config import settings
 from core.storage import upload_file
 
@@ -35,7 +36,8 @@ def _decode_header_value(value: str) -> str:
 
 
 def _extract_body_and_attachments(msg) -> tuple[str, list[dict]]:
-    body = ""
+    plain = ""
+    html = ""
     attachments: list[dict] = []
 
     if msg.is_multipart():
@@ -62,17 +64,27 @@ def _extract_body_and_attachments(msg) -> tuple[str, list[dict]]:
                 except Exception:
                     logger.exception("Failed to store attachment %s", safe_name)
                 continue
-            if not body and part.get_content_type() == "text/plain":
-                payload = part.get_payload(decode=True)
-                if payload:
-                    charset = part.get_content_charset() or "utf-8"
-                    body = payload.decode(charset, errors="replace")
+            ctype = part.get_content_type()
+            payload = part.get_payload(decode=True)
+            if not payload:
+                continue
+            charset = part.get_content_charset() or "utf-8"
+            decoded = payload.decode(charset, errors="replace")
+            if ctype == "text/plain" and not plain:
+                plain = decoded
+            elif ctype == "text/html" and not html:
+                html = decoded
     else:
         payload = msg.get_payload(decode=True)
         if payload:
             charset = msg.get_content_charset() or "utf-8"
-            body = payload.decode(charset, errors="replace")
+            decoded = payload.decode(charset, errors="replace")
+            if msg.get_content_type() == "text/html":
+                html = decoded
+            else:
+                plain = decoded
 
+    body = normalize_email_body(plain=plain, html=html)
     return body, attachments
 
 
@@ -164,7 +176,11 @@ async def _fetch_outlook_messages(account: EmailAccount, access_token: str) -> l
         for m in data.get("value", []):
             from_email = (m.get("from") or {}).get("emailAddress", {}).get("address", "")
             subject = m.get("subject", "")
-            body = (m.get("body") or {}).get("content", "")
+            body_raw = (m.get("body") or {}).get("content", "")
+            body = normalize_email_body(
+                html=body_raw if (m.get("body") or {}).get("contentType") == "html" else "",
+                plain=body_raw if (m.get("body") or {}).get("contentType") != "html" else "",
+            )
             attachments = []
             if m.get("hasAttachments"):
                 attachments = await _fetch_outlook_attachments(client, m["id"], headers)
