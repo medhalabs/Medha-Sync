@@ -1,10 +1,10 @@
 /** Format email message bodies for mail-like inbox display. */
 
 const MARKDOWN_LINK = /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g;
-const RAW_URL = /https?:\/\/[^\s<>"]+/g;
+const RAW_URL = /https?:\/\/[^\s<>\x22]+/g;
 
 const FOOTER_LINE =
-  /^(©|unsubscribe|help(\s+https?://|\s*$)|this email was intended|you(?:'re| are) receiving|manage your notification|linkedin corporation)/i;
+  /^(©|unsubscribe|help(\s+https?:\/\/|\s*$)|this email was intended|you(?:\x27re| are) receiving|manage your notification|linkedin corporation)/i;
 
 function mergeLabelUrlLines(text: string): string {
   const lines = text.split("\n");
