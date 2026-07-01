@@ -36,3 +36,12 @@ class TokenOut(BaseModel):
 
 class RefreshRequest(BaseModel):
     refresh_token: str
+
+
+class OAuthCallbackRequest(BaseModel):
+    code: str
+    redirect_uri: str
+
+
+class OAuthAuthorizeOut(BaseModel):
+    authorize_url: str

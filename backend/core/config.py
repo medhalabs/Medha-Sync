@@ -52,6 +52,7 @@ class Settings(BaseSettings):
     GOOGLE_CLIENT_ID: str = ""
     GOOGLE_CLIENT_SECRET: str = ""
     GOOGLE_REDIRECT_URI: str = "http://localhost:3000/settings/email-callback"
+    GOOGLE_AUTH_REDIRECT_URI: str = "http://localhost:3000/auth/google/callback"
 
     # Microsoft OAuth (Outlook)
     MICROSOFT_CLIENT_ID: str = ""

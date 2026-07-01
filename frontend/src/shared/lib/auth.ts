@@ -18,8 +18,19 @@ export const authOptions: NextAuthOptions = {
       credentials: {
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
+        oauth_token: { label: "OAuth Token", type: "text" },
       },
       async authorize(credentials) {
+        if (credentials?.oauth_token) {
+          try {
+            const res = await axios.get(`${apiBaseUrl()}/api/auth/me`, {
+              headers: { Authorization: `Bearer ${credentials.oauth_token}` },
+            });
+            return { ...res.data, accessToken: credentials.oauth_token };
+          } catch {
+            return null;
+          }
+        }
         try {
           const res = await axios.post(`${apiBaseUrl()}/api/auth/login`, {
             email: credentials?.email,

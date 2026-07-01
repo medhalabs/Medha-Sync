@@ -67,22 +67,35 @@ def refresh_access_token(refresh_token: str, client_id: str, client_secret: str)
     })
 
 
-def get_email_from_token_response(token_response: dict[str, Any]) -> str | None:
+def decode_id_token(id_token: str) -> dict[str, Any]:
+    parts = id_token.split(".")
+    if len(parts) < 2:
+        return {}
+    payload_b64 = parts[1]
+    padding = 4 - len(payload_b64) % 4
+    if padding != 4:
+        payload_b64 += "=" * padding
+    return json.loads(base64.urlsafe_b64decode(payload_b64))
+
+
+def get_profile_from_token_response(token_response: dict[str, Any]) -> dict[str, str | None]:
     id_token = token_response.get("id_token")
     if not id_token:
-        return None
+        return {"email": None, "name": None, "picture": None, "google_id": None}
     try:
-        parts = id_token.split(".")
-        if len(parts) < 2:
-            return None
-        payload_b64 = parts[1]
-        padding = 4 - len(payload_b64) % 4
-        if padding != 4:
-            payload_b64 += "=" * padding
-        payload = json.loads(base64.urlsafe_b64decode(payload_b64))
-        return payload.get("email")
+        payload = decode_id_token(id_token)
+        return {
+            "email": payload.get("email"),
+            "name": payload.get("name"),
+            "picture": payload.get("picture"),
+            "google_id": payload.get("sub"),
+        }
     except Exception:
-        return None
+        return {"email": None, "name": None, "picture": None, "google_id": None}
+
+
+def get_email_from_token_response(token_response: dict[str, Any]) -> str | None:
+    return get_profile_from_token_response(token_response).get("email")
 
 
 def build_xoauth2_string(user_email: str, access_token: str) -> str:
