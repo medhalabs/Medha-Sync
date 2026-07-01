@@ -437,17 +437,17 @@ export default function CatalogView() {
   const parentItem = form.parent_id ? allItems.find((i: any) => i.id === form.parent_id) : null;
 
   return (
-    <div className="p-6">
-      <div className="flex items-center justify-between mb-6">
+    <div className="p-4 md:p-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Catalog</h1>
+          <h1 className="text-xl md:text-2xl font-bold text-gray-900">Catalog</h1>
           <p className="text-sm text-gray-500 mt-0.5">
             Products and brochures shown in the WhatsApp bot menu — supports up to 10 levels of nesting
           </p>
         </div>
         <button
           onClick={() => openAdd()}
-          className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-indigo-700 transition-colors"
+          className="flex items-center justify-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-indigo-700 transition-colors w-full sm:w-auto"
         >
           <Plus className="w-4 h-4" /> Add item
         </button>

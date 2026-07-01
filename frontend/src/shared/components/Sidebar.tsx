@@ -3,7 +3,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/shared/lib/utils";
 import {
-  Inbox, Users, GitBranch, Megaphone, Zap, BookOpen, BarChart2, Settings, LogOut, MessageSquare, Files,
+  Inbox, Users, GitBranch, Megaphone, Zap, BookOpen, BarChart2, Settings, LogOut, MessageSquare, Files, X,
 } from "lucide-react";
 import { signOut, useSession } from "next-auth/react";
 
@@ -18,17 +18,30 @@ const nav = [
   { href: "/analytics",   label: "Analytics",    icon: BarChart2 },
 ];
 
-export default function Sidebar() {
+type SidebarProps = {
+  mobileOpen?: boolean;
+  onMobileClose?: () => void;
+};
+
+export default function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
   const path = usePathname();
   const { data: session } = useSession();
   const userName = (session?.user as any)?.name || "User";
   const userEmail = (session?.user as any)?.email || "";
   const initials = userName.split(" ").map((w: string) => w[0]).join("").toUpperCase().slice(0, 2);
 
+  const closeMobile = () => onMobileClose?.();
+
   return (
-    <aside className="w-64 flex-shrink-0 bg-gray-900 flex flex-col h-screen">
+    <aside
+      className={cn(
+        "w-64 flex-shrink-0 bg-gray-900 flex flex-col h-[100dvh] z-50",
+        mobileOpen ? "fixed inset-y-0 left-0 flex" : "hidden",
+        "md:relative md:inset-auto md:flex"
+      )}
+    >
       {/* Logo */}
-      <div className="h-16 flex items-center px-5 border-b border-gray-800">
+      <div className="h-16 flex items-center px-5 border-b border-gray-800 safe-top">
         <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg mr-3 flex-shrink-0">
           <MessageSquare className="w-4 h-4 text-white" />
         </div>
@@ -39,6 +52,15 @@ export default function Sidebar() {
           </div>
           <p className="text-xs text-gray-500 leading-none mt-0.5">WhatsApp CRM</p>
         </div>
+        {onMobileClose && (
+          <button
+            onClick={closeMobile}
+            className="md:hidden p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 ml-1"
+            aria-label="Close menu"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        )}
       </div>
 
       {/* Nav */}
@@ -46,7 +68,7 @@ export default function Sidebar() {
         {nav.map(({ href, label, icon: Icon }) => {
           const active = path.startsWith(href);
           return (
-            <Link key={href} href={href} className={cn(
+            <Link key={href} href={href} onClick={closeMobile} className={cn(
               "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150",
               active
                 ? "bg-gradient-to-r from-indigo-600 to-indigo-500 text-white shadow-lg shadow-indigo-900/30"
@@ -60,7 +82,7 @@ export default function Sidebar() {
         })}
 
         <div className="pt-2 mt-2 border-t border-gray-800">
-          <Link href="/settings" className={cn(
+          <Link href="/settings" onClick={closeMobile} className={cn(
             "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150",
             path.startsWith("/settings")
               ? "bg-gradient-to-r from-indigo-600 to-indigo-500 text-white shadow-lg shadow-indigo-900/30"
@@ -86,7 +108,7 @@ export default function Sidebar() {
           <button
             onClick={() => signOut({ callbackUrl: "/login" })}
             title="Sign out"
-            className="p-1 rounded-lg text-gray-600 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100"
+            className="p-1 rounded-lg text-gray-600 hover:text-red-400 transition-colors md:opacity-0 md:group-hover:opacity-100"
           >
             <LogOut className="w-3.5 h-3.5" />
           </button>

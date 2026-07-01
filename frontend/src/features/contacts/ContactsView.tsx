@@ -33,17 +33,17 @@ export default function ContactsView() {
   const contacts = data?.items || [];
 
   return (
-    <div className="flex h-full">
+    <div className="flex h-full min-h-0 relative">
       {/* Main table */}
-      <div className="flex-1 p-6 min-w-0 overflow-y-auto">
-        <div className="flex items-center justify-between mb-6">
+      <div className="flex-1 p-4 md:p-6 min-w-0 overflow-y-auto">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
           <div>
             <h1 className="text-xl font-semibold text-gray-900">Contacts</h1>
             <p className="text-sm text-gray-500 mt-0.5">{data?.total || 0} total</p>
           </div>
           <button
             onClick={() => setShowAdd(true)}
-            className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-indigo-700 transition-colors shadow-sm shadow-indigo-200"
+            className="flex items-center justify-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-indigo-700 transition-colors shadow-sm shadow-indigo-200 w-full sm:w-auto"
           >
             <Plus className="w-4 h-4" /> Add contact
           </button>
@@ -63,8 +63,50 @@ export default function ContactsView() {
           <EmptyState icon={Users} title="No contacts yet" description="Add your first contact to get started"
             action={<button onClick={() => setShowAdd(true)} className="text-sm text-brand-500 hover:underline">Add contact</button>} />
         ) : (
-          <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm">
-            <table className="w-full">
+          <>
+            {/* Mobile card list */}
+            <div className="md:hidden space-y-2">
+              {contacts.map((c: any) => (
+                <button
+                  key={c.id}
+                  onClick={() => setSelectedContact(c)}
+                  className={`w-full text-left bg-white rounded-xl border border-gray-100 p-4 shadow-sm transition-colors ${
+                    selectedContact?.id === c.id ? "border-indigo-300 bg-indigo-50/50" : "hover:bg-gray-50"
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-400 to-purple-500 flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
+                      {(c.name || c.phone || "?")[0].toUpperCase()}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-gray-900 truncate">{c.name || "—"}</p>
+                      {c.phone && (
+                        <p className="text-xs text-gray-500 truncate flex items-center gap-1 mt-0.5">
+                          <Phone className="w-3 h-3" />{c.phone}
+                        </p>
+                      )}
+                      {c.email && (
+                        <p className="text-xs text-gray-500 truncate flex items-center gap-1 mt-0.5">
+                          <Mail className="w-3 h-3" />{c.email}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  {(c.tags || []).length > 0 && (
+                    <div className="flex flex-wrap gap-1 mt-2">
+                      {(c.tags || []).slice(0, 3).map((t: string) => (
+                        <span key={t} className="text-xs bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-full font-medium">{t}</span>
+                      ))}
+                    </div>
+                  )}
+                </button>
+              ))}
+            </div>
+
+            {/* Desktop table */}
+            <div className="hidden md:block bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm">
+              <div className="overflow-x-auto">
+            <table className="w-full min-w-[640px]">
               <thead>
                 <tr className="border-b border-gray-100 bg-gray-50/60">
                   <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Name</th>
@@ -124,21 +166,29 @@ export default function ContactsView() {
                 ))}
               </tbody>
             </table>
+              </div>
           </div>
+          </>
         )}
       </div>
 
       {/* Contact detail drawer */}
       {selectedContact && (
-        <ContactDrawer
-          contactId={selectedContact.id}
-          onClose={() => setSelectedContact(null)}
-        />
+        <>
+          <div
+            className="md:hidden fixed inset-0 z-40 bg-black/40"
+            onClick={() => setSelectedContact(null)}
+          />
+          <ContactDrawer
+            contactId={selectedContact.id}
+            onClose={() => setSelectedContact(null)}
+          />
+        </>
       )}
 
       {/* Add contact modal */}
       {showAdd && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50" onClick={() => setShowAdd(false)}>
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-end sm:items-center justify-center z-50 p-4" onClick={() => setShowAdd(false)}>
           <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl" onClick={(e) => e.stopPropagation()}>
             <h2 className="text-base font-bold text-gray-900 mb-5">Add contact</h2>
             <div className="space-y-4">
@@ -197,7 +247,7 @@ function ContactDrawer({ contactId, onClose }: { contactId: string; onClose: () 
   });
 
   if (isLoading) return (
-    <div className="w-72 border-l border-gray-200 bg-white flex items-center justify-center">
+    <div className="fixed inset-y-0 right-0 w-full max-w-sm md:relative md:inset-auto md:w-72 border-l border-gray-200 bg-white flex items-center justify-center z-50 md:z-auto">
       <span className="text-sm text-gray-400">Loading…</span>
     </div>
   );
@@ -222,7 +272,7 @@ function ContactDrawer({ contactId, onClose }: { contactId: string; onClose: () 
   };
 
   return (
-    <div className="w-72 border-l border-gray-200 bg-white flex-shrink-0 flex flex-col">
+    <div className="fixed inset-y-0 right-0 w-full max-w-sm md:relative md:inset-auto md:w-72 border-l border-gray-200 bg-white flex-shrink-0 flex flex-col z-50 md:z-auto h-full md:h-auto">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
         <span className="text-sm font-semibold text-gray-900">Contact details</span>

@@ -3,7 +3,7 @@ import { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import api from "@/shared/lib/api";
 import { formatDate } from "@/shared/lib/utils";
-import { Send, UserCheck, CheckCircle, Bot, Phone, Mail, Tag, StickyNote, Zap, Trash2, Paperclip, Download, X, Loader2 } from "lucide-react";
+import { Send, UserCheck, CheckCircle, Bot, Phone, Mail, Tag, StickyNote, Zap, Trash2, Paperclip, Download, X, Loader2, ChevronLeft, User } from "lucide-react";
 import toast from "react-hot-toast";
 
 type PendingAttachment = {
@@ -30,9 +30,10 @@ const QUICK_REPLIES = [
   "Please type *menu* to see our services.",
 ];
 
-export default function ConversationThread({ conversationId }: { conversationId: string }) {
+export default function ConversationThread({ conversationId, onBack }: { conversationId: string; onBack?: () => void }) {
   const [reply, setReply] = useState("");
   const [showQuick, setShowQuick] = useState(false);
+  const [showContactPanel, setShowContactPanel] = useState(false);
   const [pendingAttachments, setPendingAttachments] = useState<PendingAttachment[]>([]);
   const [uploading, setUploading] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -149,66 +150,86 @@ export default function ConversationThread({ conversationId }: { conversationId:
   const isResolved = conv?.status === "resolved";
 
   return (
-    <div className="flex h-full">
+    <div className="flex h-full min-h-0 relative">
       {/* Message area */}
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 min-h-0">
         {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 bg-white flex-shrink-0">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full bg-brand-100 flex items-center justify-center text-brand-700 text-sm font-semibold">
+        <div className="flex items-center justify-between px-3 sm:px-4 py-2.5 sm:py-3 border-b border-gray-200 bg-white flex-shrink-0 gap-2">
+          <div className="flex items-center gap-2 min-w-0 flex-1">
+            {onBack && (
+              <button
+                onClick={onBack}
+                className="md:hidden p-1.5 -ml-1 rounded-lg text-gray-500 hover:bg-gray-100 flex-shrink-0"
+                aria-label="Back to conversations"
+              >
+                <ChevronLeft className="w-5 h-5" />
+              </button>
+            )}
+            <div className="w-8 h-8 rounded-full bg-brand-100 flex items-center justify-center text-brand-700 text-sm font-semibold flex-shrink-0">
               {initials}
             </div>
-            <div>
-              <p className="text-sm font-medium text-gray-900">{displayName}</p>
+            <div className="min-w-0">
+              <p className="text-sm font-medium text-gray-900 truncate">{displayName}</p>
               {conv?.contact_name && conv?.contact_email && (
-                <p className="text-xs text-gray-400">{conv.contact_email}</p>
+                <p className="text-xs text-gray-400 truncate">{conv.contact_email}</p>
               )}
               {conv?.contact_name && !conv?.contact_email && conv?.contact_phone && (
-                <p className="text-xs text-gray-400">{conv.contact_phone}</p>
+                <p className="text-xs text-gray-400 truncate">{conv.contact_phone}</p>
               )}
             </div>
             {isBot && (
-              <span className="flex items-center gap-1 text-xs text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">
+              <span className="hidden sm:flex items-center gap-1 text-xs text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full flex-shrink-0">
                 <Bot className="w-3 h-3" /> Bot active
               </span>
             )}
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-1 sm:gap-2 flex-shrink-0">
+            <button
+              onClick={() => setShowContactPanel((v) => !v)}
+              className={`lg:hidden p-2 rounded-lg transition-colors ${showContactPanel ? "bg-brand-100 text-brand-600" : "hover:bg-gray-100 text-gray-500"}`}
+              title="Contact info"
+            >
+              <User className="w-4 h-4" />
+            </button>
             {!isResolved && (
               <>
                 {isBot && (
                   <button
                     onClick={() => statusMutation.mutate("agent")}
-                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-600"
+                    className="flex items-center gap-1.5 p-2 sm:px-3 sm:py-1.5 text-xs border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-600"
+                    title="Take over"
                   >
                     <UserCheck className="w-3.5 h-3.5" />
-                    Take over
+                    <span className="hidden sm:inline">Take over</span>
                   </button>
                 )}
                 {!isBot && (
                   <button
                     onClick={() => statusMutation.mutate("bot")}
-                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs border border-blue-200 bg-blue-50 rounded-lg hover:bg-blue-100 text-blue-600"
+                    className="flex items-center gap-1.5 p-2 sm:px-3 sm:py-1.5 text-xs border border-blue-200 bg-blue-50 rounded-lg hover:bg-blue-100 text-blue-600"
+                    title="Hand to bot"
                   >
                     <Bot className="w-3.5 h-3.5" />
-                    Hand to bot
+                    <span className="hidden sm:inline">Hand to bot</span>
                   </button>
                 )}
                 <button
                   onClick={() => statusMutation.mutate("resolved")}
-                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs bg-green-50 border border-green-200 rounded-lg hover:bg-green-100 text-green-700"
+                  className="flex items-center gap-1.5 p-2 sm:px-3 sm:py-1.5 text-xs bg-green-50 border border-green-200 rounded-lg hover:bg-green-100 text-green-700"
+                  title="Resolve"
                 >
                   <CheckCircle className="w-3.5 h-3.5" />
-                  Resolve
+                  <span className="hidden sm:inline">Resolve</span>
                 </button>
               </>
             )}
             {isResolved && (
               <button
                 onClick={() => statusMutation.mutate("bot")}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-xs border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-600"
+                className="flex items-center gap-1.5 p-2 sm:px-3 sm:py-1.5 text-xs border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-600"
               >
-                Reopen
+                <span className="hidden sm:inline">Reopen</span>
+                <span className="sm:hidden text-xs">Open</span>
               </button>
             )}
             <button
@@ -218,11 +239,11 @@ export default function ConversationThread({ conversationId }: { conversationId:
                 }
               }}
               disabled={deleteAllMutation.isPending || messages.length === 0}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs border border-red-300 text-red-600 rounded-lg hover:bg-red-50 disabled:opacity-40"
+              className="flex items-center gap-1.5 p-2 sm:px-3 sm:py-1.5 text-xs border border-red-300 text-red-600 rounded-lg hover:bg-red-50 disabled:opacity-40"
               title="Delete all messages"
             >
               <Trash2 className="w-3.5 h-3.5" />
-              Clear
+              <span className="hidden sm:inline">Clear</span>
             </button>
           </div>
         </div>
@@ -320,7 +341,7 @@ export default function ConversationThread({ conversationId }: { conversationId:
               ))}
             </div>
           )}
-          <div className="flex items-end gap-2 p-3">
+          <div className="flex items-end gap-2 p-3 safe-bottom">
             <input
               ref={fileInputRef}
               type="file"
@@ -347,7 +368,7 @@ export default function ConversationThread({ conversationId }: { conversationId:
               value={reply}
               onChange={(e) => setReply(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }}
-              placeholder="Type a reply… (Enter to send, Shift+Enter for new line)"
+              placeholder="Type a reply…"
               rows={2}
               className="flex-1 border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none"
             />
@@ -362,13 +383,27 @@ export default function ConversationThread({ conversationId }: { conversationId:
         </div>
       </div>
 
-      {/* Contact panel */}
-      <ContactPanel conv={conv} onUpdateContact={updateContact} />
+      {/* Contact panel — desktop sidebar, mobile overlay */}
+      {showContactPanel && (
+        <div
+          className="lg:hidden fixed inset-0 z-40 bg-black/40"
+          onClick={() => setShowContactPanel(false)}
+        />
+      )}
+      <div
+        className={
+          showContactPanel
+            ? "fixed inset-y-0 right-0 z-50 w-full max-w-xs lg:relative lg:inset-auto lg:z-auto lg:max-w-none flex"
+            : "hidden lg:flex"
+        }
+      >
+        <ContactPanel conv={conv} onUpdateContact={updateContact} onClose={() => setShowContactPanel(false)} />
+      </div>
     </div>
   );
 }
 
-function ContactPanel({ conv, onUpdateContact }: { conv: any; onUpdateContact: any }) {
+function ContactPanel({ conv, onUpdateContact, onClose }: { conv: any; onUpdateContact: any; onClose?: () => void }) {
   const [noteText, setNoteText] = useState("");
   const [newTag, setNewTag] = useState("");
 
@@ -394,7 +429,15 @@ function ContactPanel({ conv, onUpdateContact }: { conv: any; onUpdateContact: a
   };
 
   return (
-    <div className="w-64 border-l border-gray-200 bg-white flex-shrink-0 overflow-y-auto">
+    <div className="w-64 border-l border-gray-200 bg-white flex-shrink-0 overflow-y-auto h-full">
+      {onClose && (
+        <div className="lg:hidden flex items-center justify-between px-4 py-3 border-b border-gray-100">
+          <span className="text-sm font-semibold text-gray-900">Contact info</span>
+          <button onClick={onClose} className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-500">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
       {/* Contact info */}
       <div className="p-4 border-b border-gray-100">
         <div className="flex items-center gap-3 mb-3">

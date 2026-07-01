@@ -157,10 +157,10 @@ export default function DocumentsView() {
   ];
 
   return (
-    <div className="p-6">
+    <div className="p-4 md:p-6">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Documents</h1>
+          <h1 className="text-xl md:text-2xl font-bold text-gray-900">Documents</h1>
           <p className="text-sm text-gray-500 mt-0.5">
             Upload PDFs and images — use them in your catalog, WhatsApp bot, or copy shareable links
           </p>
@@ -169,7 +169,7 @@ export default function DocumentsView() {
 
       {/* Upload zone */}
       <div
-        className="mb-6 border-2 border-dashed border-gray-200 rounded-xl p-8 text-center hover:border-indigo-300 hover:bg-indigo-50/30 transition-colors cursor-pointer"
+        className="mb-6 border-2 border-dashed border-gray-200 rounded-xl p-6 md:p-8 text-center hover:border-indigo-300 hover:bg-indigo-50/30 transition-colors cursor-pointer"
         onClick={() => !uploading && inputRef.current?.click()}
         onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
         onDrop={(e) => { e.preventDefault(); handleFiles(e.dataTransfer.files); }}

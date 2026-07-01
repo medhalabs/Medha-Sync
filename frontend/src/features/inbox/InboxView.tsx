@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import api from "@/shared/lib/api";
 import { formatRelative } from "@/shared/lib/utils";
+import { cn } from "@/shared/lib/utils";
 import ConversationThread from "./ConversationThread";
 import { MessageSquare, Mail, Search } from "lucide-react";
 
@@ -66,9 +67,14 @@ export default function InboxView() {
   });
 
   return (
-    <div className="flex h-full">
-      {/* Sidebar */}
-      <div className="w-80 border-r border-gray-100 bg-white flex flex-col flex-shrink-0 shadow-sm">
+    <div className="flex h-full min-h-0">
+      {/* Conversation list */}
+      <div
+        className={cn(
+          "w-full md:w-80 border-r border-gray-100 bg-white flex flex-col flex-shrink-0 shadow-sm",
+          selectedId ? "hidden md:flex" : "flex"
+        )}
+      >
         <div className="px-4 pt-5 pb-3 border-b border-gray-100">
           <div className="flex items-center justify-between mb-4">
             <h1 className="font-bold text-gray-900 text-base">Inbox</h1>
@@ -139,9 +145,14 @@ export default function InboxView() {
       </div>
 
       {/* Thread */}
-      <div className="flex-1 flex flex-col min-w-0">
+      <div
+        className={cn(
+          "flex-1 flex flex-col min-w-0 min-h-0",
+          !selectedId ? "hidden md:flex" : "flex"
+        )}
+      >
         {selectedId ? (
-          <ConversationThread conversationId={selectedId} />
+          <ConversationThread conversationId={selectedId} onBack={() => setSelectedId(null)} />
         ) : (
           <div className="flex-1 flex items-center justify-center text-gray-400 text-sm">
             Select a conversation to start

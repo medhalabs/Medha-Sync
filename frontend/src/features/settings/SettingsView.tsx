@@ -30,7 +30,7 @@ function InviteModal({ onClose }: { onClose: () => void }) {
   });
 
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50" onClick={onClose}>
+    <div className="fixed inset-0 bg-black/40 flex items-end sm:items-center justify-center z-50 p-4" onClick={onClose}>
       <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-5">
           <h2 className="text-base font-semibold text-gray-900">Invite team member</h2>
@@ -121,7 +121,7 @@ function TeamRow({ member }: { member: any }) {
         </span>
       </td>
       <td className="px-5 py-3.5 text-right">
-        <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+        <div className="flex items-center justify-end gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
           {editing ? (
             <>
               <button onClick={() => updateMutation.mutate({ role })} disabled={updateMutation.isPending}
@@ -287,12 +287,12 @@ export default function SettingsView() {
   ];
 
   return (
-    <div className="p-6">
-      <h1 className="text-2xl font-bold text-gray-900 mb-6">Settings</h1>
+    <div className="p-4 md:p-6">
+      <h1 className="text-xl md:text-2xl font-bold text-gray-900 mb-4 md:mb-6">Settings</h1>
 
-      <div className="flex gap-1 mb-6 border-b border-gray-200">
+      <div className="flex gap-1 mb-6 border-b border-gray-200 overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0 scrollbar-none">
         {tabs.map(({ id, label, icon: Icon }) => (
-          <button key={id} onClick={() => setTab(id)} className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${tab === id ? "border-brand-500 text-brand-600" : "border-transparent text-gray-500 hover:text-gray-700"}`}>
+          <button key={id} onClick={() => setTab(id)} className={`flex items-center gap-2 px-3 md:px-4 py-2.5 text-sm font-medium border-b-2 transition-colors whitespace-nowrap flex-shrink-0 ${tab === id ? "border-brand-500 text-brand-600" : "border-transparent text-gray-500 hover:text-gray-700"}`}>
             <Icon className="w-4 h-4" />
             {label}
           </button>
@@ -302,15 +302,16 @@ export default function SettingsView() {
       {tab === "team" && (
         <div>
           {showInvite && <InviteModal onClose={() => setShowInvite(false)} />}
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
             <p className="text-sm text-gray-500">{team.length} member{team.length !== 1 ? "s" : ""} on your team</p>
             <button onClick={() => setShowInvite(true)}
-              className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-indigo-700 transition-colors shadow-sm">
+              className="flex items-center justify-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-indigo-700 transition-colors shadow-sm w-full sm:w-auto">
               <UserPlus className="w-4 h-4" /> Invite member
             </button>
           </div>
           <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-            <table className="w-full">
+            <div className="overflow-x-auto">
+            <table className="w-full min-w-[520px]">
               <thead>
                 <tr className="border-b border-gray-100 bg-gray-50/50">
                   <th className="text-left px-5 py-3 text-xs font-medium text-gray-500">Member</th>
@@ -323,6 +324,7 @@ export default function SettingsView() {
                 {team.map((u: any) => <TeamRow key={u.id} member={u} />)}
               </tbody>
             </table>
+            </div>
             {team.length === 0 && (
               <div className="px-5 py-10 text-center text-sm text-gray-400">No team members yet — invite someone to get started.</div>
             )}
@@ -340,15 +342,16 @@ export default function SettingsView() {
 
       {tab === "api" && (
         <div>
-          <div className="flex justify-between items-center mb-4">
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-4">
             <p className="text-sm text-gray-500">API keys for external integrations. The key is shown once — copy it immediately.</p>
-            <button onClick={() => createKeyMutation.mutate()} className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-indigo-700 transition-colors">
+            <button onClick={() => createKeyMutation.mutate()} className="flex items-center justify-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-indigo-700 transition-colors w-full sm:w-auto flex-shrink-0">
               <Key className="w-4 h-4" />
               Generate key
             </button>
           </div>
           <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-            <table className="w-full">
+            <div className="overflow-x-auto">
+            <table className="w-full min-w-[480px]">
               <thead><tr className="border-b border-gray-100"><th className="text-left px-4 py-3 text-xs font-medium text-gray-500">Name</th><th className="text-left px-4 py-3 text-xs font-medium text-gray-500">Scopes</th><th className="text-left px-4 py-3 text-xs font-medium text-gray-500">Status</th><th className="px-4 py-3" /></tr></thead>
               <tbody>
                 {(apiKeys || []).map((k: any) => (
@@ -363,6 +366,7 @@ export default function SettingsView() {
                 ))}
               </tbody>
             </table>
+            </div>
           </div>
         </div>
       )}
@@ -492,7 +496,8 @@ function EmailAccounts() {
         ) : accounts.length === 0 ? (
           <div className="px-5 py-8 text-sm text-gray-400 text-center">No accounts connected yet</div>
         ) : (
-          <table className="w-full">
+          <div className="overflow-x-auto">
+          <table className="w-full min-w-[480px]">
             <thead>
               <tr className="border-b border-gray-50">
                 <th className="text-left px-5 py-3 text-xs font-medium text-gray-500">Account</th>
@@ -529,6 +534,7 @@ function EmailAccounts() {
               ))}
             </tbody>
           </table>
+          </div>
         )}
       </div>
     </div>

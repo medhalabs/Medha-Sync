@@ -32,10 +32,10 @@ export default function BroadcastsView() {
   const statusVariant: Record<string, any> = { draft: "default", scheduled: "info", sending: "warning", sent: "success", failed: "danger" };
 
   return (
-    <div className="p-6">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Broadcasts</h1>
-        <button onClick={() => setShowNew(true)} className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-indigo-700 transition-colors">
+    <div className="p-4 md:p-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
+        <h1 className="text-xl md:text-2xl font-bold text-gray-900">Broadcasts</h1>
+        <button onClick={() => setShowNew(true)} className="flex items-center justify-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-indigo-700 transition-colors w-full sm:w-auto">
           <Plus className="w-4 h-4" />
           New broadcast
         </button>
@@ -46,13 +46,13 @@ export default function BroadcastsView() {
       ) : (
         <div className="space-y-3">
           {broadcasts.map((b: any) => (
-            <div key={b.id} className="bg-white border border-gray-200 rounded-xl p-4 flex items-center justify-between">
-              <div>
+            <div key={b.id} className="bg-white border border-gray-200 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="min-w-0">
                 <p className="text-sm font-medium text-gray-900">{b.name}</p>
                 <p className="text-xs text-gray-500 mt-0.5">{b.channel} · {formatDate(b.created_at)}</p>
-                <p className="text-xs text-gray-400 mt-1 line-clamp-1">{b.message_template}</p>
+                <p className="text-xs text-gray-400 mt-1 line-clamp-2">{b.message_template}</p>
               </div>
-              <div className="flex items-center gap-3 ml-4">
+              <div className="flex items-center justify-between sm:justify-end gap-3 sm:ml-4 flex-shrink-0">
                 <div className="text-right">
                   <Badge variant={statusVariant[b.status]}>{b.status}</Badge>
                   {b.status === "sent" && (
@@ -72,7 +72,7 @@ export default function BroadcastsView() {
       )}
 
       {showNew && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50" onClick={() => setShowNew(false)}>
+        <div className="fixed inset-0 bg-black/40 flex items-end sm:items-center justify-center z-50 p-4" onClick={() => setShowNew(false)}>
           <div className="bg-white rounded-xl p-6 w-full max-w-md shadow-xl" onClick={(e) => e.stopPropagation()}>
             <h2 className="text-base font-semibold mb-4">New broadcast</h2>
             <div className="space-y-3">
