@@ -14,6 +14,7 @@ def _build_out(conv: Conversation, contact: Contact | None, preview: str | None)
         contact_id=conv.contact_id,
         contact_name=contact.name if contact else None,
         contact_phone=contact.phone if contact else None,
+        contact_email=contact.email if contact else None,
         contact_avatar=contact.avatar_url if contact else None,
         contact_tags=contact.tags if contact else [],
         last_message_preview=preview,

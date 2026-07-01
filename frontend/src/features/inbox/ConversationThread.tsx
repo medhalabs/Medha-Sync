@@ -3,8 +3,24 @@ import { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import api from "@/shared/lib/api";
 import { formatDate } from "@/shared/lib/utils";
-import { Send, UserCheck, CheckCircle, Bot, Phone, Tag, StickyNote, ChevronDown, Zap, Trash2 } from "lucide-react";
+import { Send, UserCheck, CheckCircle, Bot, Phone, Mail, Tag, StickyNote, Zap, Trash2, Paperclip, Download, X, Loader2 } from "lucide-react";
 import toast from "react-hot-toast";
+
+type PendingAttachment = {
+  filename: string;
+  path: string;
+  content_type: string;
+  size: number;
+  url: string;
+};
+
+type MessageAttachment = {
+  filename: string;
+  path: string;
+  content_type: string;
+  size: number;
+  url: string;
+};
 
 const QUICK_REPLIES = [
   "Hi! Thanks for reaching out. How can I help you today?",
@@ -17,7 +33,10 @@ const QUICK_REPLIES = [
 export default function ConversationThread({ conversationId }: { conversationId: string }) {
   const [reply, setReply] = useState("");
   const [showQuick, setShowQuick] = useState(false);
+  const [pendingAttachments, setPendingAttachments] = useState<PendingAttachment[]>([]);
+  const [uploading, setUploading] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const qc = useQueryClient();
 
   const { data: conv } = useQuery({
@@ -39,14 +58,28 @@ export default function ConversationThread({ conversationId }: { conversationId:
   }, [messages.length]);
 
   const sendMutation = useMutation({
-    mutationFn: (content: string) => api.post("/api/messages", { conversation_id: conversationId, content }),
+    mutationFn: (payload: { content: string; attachments: PendingAttachment[] }) =>
+      api.post("/api/messages", {
+        conversation_id: conversationId,
+        content: payload.content,
+        attachments: payload.attachments.map(({ filename, path, content_type, size }) => ({
+          filename,
+          path,
+          content_type,
+          size,
+        })),
+      }),
     onSuccess: () => {
       setReply("");
+      setPendingAttachments([]);
       setShowQuick(false);
       qc.invalidateQueries({ queryKey: ["messages", conversationId] });
       qc.invalidateQueries({ queryKey: ["conversations"] });
     },
-    onError: () => toast.error("Failed to send"),
+    onError: (err: any) => {
+      const detail = err?.response?.data?.detail;
+      toast.error(typeof detail === "string" ? detail : "Failed to send");
+    },
   });
 
   const statusMutation = useMutation({
@@ -84,14 +117,34 @@ export default function ConversationThread({ conversationId }: { conversationId:
     onError: () => toast.error("Failed to delete messages"),
   });
 
-  const send = () => {
-    const text = reply.trim();
-    if (!text || sendMutation.isPending) return;
-    sendMutation.mutate(text);
+  const handleAttachmentSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setUploading(true);
+    try {
+      const form = new FormData();
+      form.append("file", file);
+      const res = await api.post("/api/messages/attachments/upload", form, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      setPendingAttachments((prev) => [...prev, res.data]);
+    } catch (err: any) {
+      const detail = err?.response?.data?.detail;
+      toast.error(typeof detail === "string" ? detail : "Failed to upload attachment");
+    } finally {
+      setUploading(false);
+    }
   };
 
-  const displayName = conv?.contact_name || conv?.contact_phone || "Unknown";
-  const initials = displayName[0]?.toUpperCase() || "?";
+  const send = () => {
+    const text = reply.trim();
+    if ((!text && pendingAttachments.length === 0) || sendMutation.isPending) return;
+    sendMutation.mutate({ content: text, attachments: pendingAttachments });
+  };
+
+  const displayName = conv?.contact_name || conv?.contact_email || conv?.contact_phone || "Unknown";
+  const initials = (conv?.contact_name || conv?.contact_email || conv?.contact_phone || "?")[0]?.toUpperCase() || "?";
   const isBot = conv?.status === "bot";
   const isResolved = conv?.status === "resolved";
 
@@ -107,7 +160,10 @@ export default function ConversationThread({ conversationId }: { conversationId:
             </div>
             <div>
               <p className="text-sm font-medium text-gray-900">{displayName}</p>
-              {conv?.contact_phone && (
+              {conv?.contact_name && conv?.contact_email && (
+                <p className="text-xs text-gray-400">{conv.contact_email}</p>
+              )}
+              {conv?.contact_name && !conv?.contact_email && conv?.contact_phone && (
                 <p className="text-xs text-gray-400">{conv.contact_phone}</p>
               )}
             </div>
@@ -182,7 +238,28 @@ export default function ConversationThread({ conversationId }: { conversationId:
                     : "bg-white border border-gray-200 text-gray-900 rounded-bl-sm"
                 }`}
               >
-                <p className="whitespace-pre-wrap">{msg.content}</p>
+                {msg.content && <p className="whitespace-pre-wrap">{msg.content}</p>}
+                {msg.attachments?.length > 0 && (
+                  <div className={`space-y-1 ${msg.content ? "mt-2" : ""}`}>
+                    {msg.attachments.map((att: MessageAttachment) => (
+                      <a
+                        key={`${msg.id}-${att.path}`}
+                        href={att.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        download={att.filename}
+                        className={`flex items-center gap-2 text-xs rounded-lg px-2 py-1.5 ${
+                          msg.direction === "outbound"
+                            ? "bg-brand-600/40 text-white hover:bg-brand-600/60"
+                            : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                        }`}
+                      >
+                        <Download className="w-3.5 h-3.5 flex-shrink-0" />
+                        <span className="truncate">{att.filename}</span>
+                      </a>
+                    ))}
+                  </div>
+                )}
                 <p className={`text-xs mt-1 ${msg.direction === "outbound" ? "text-brand-100" : "text-gray-400"}`}>
                   {formatDate(msg.sent_at)}
                 </p>
@@ -223,13 +300,48 @@ export default function ConversationThread({ conversationId }: { conversationId:
               </div>
             </div>
           )}
+          {pendingAttachments.length > 0 && (
+            <div className="px-4 pt-3 flex flex-wrap gap-2 border-b border-gray-100">
+              {pendingAttachments.map((att) => (
+                <span
+                  key={att.path}
+                  className="inline-flex items-center gap-1.5 text-xs bg-gray-100 text-gray-700 px-2.5 py-1 rounded-full"
+                >
+                  <Paperclip className="w-3 h-3" />
+                  <span className="max-w-[140px] truncate">{att.filename}</span>
+                  <button
+                    type="button"
+                    onClick={() => setPendingAttachments((prev) => prev.filter((a) => a.path !== att.path))}
+                    className="text-gray-400 hover:text-red-500"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
           <div className="flex items-end gap-2 p-3">
+            <input
+              ref={fileInputRef}
+              type="file"
+              className="hidden"
+              onChange={handleAttachmentSelect}
+            />
             <button
               onClick={() => setShowQuick((v) => !v)}
               className={`p-2 rounded-lg transition-colors ${showQuick ? "bg-brand-100 text-brand-600" : "hover:bg-gray-100 text-gray-400"}`}
               title="Quick replies"
             >
               <Zap className="w-4 h-4" />
+            </button>
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploading || isResolved}
+              className="p-2 rounded-lg transition-colors hover:bg-gray-100 text-gray-400 disabled:opacity-50"
+              title="Attach file"
+            >
+              {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Paperclip className="w-4 h-4" />}
             </button>
             <textarea
               value={reply}
@@ -241,7 +353,7 @@ export default function ConversationThread({ conversationId }: { conversationId:
             />
             <button
               onClick={send}
-              disabled={!reply.trim() || sendMutation.isPending}
+              disabled={(!reply.trim() && pendingAttachments.length === 0) || sendMutation.isPending || isResolved}
               className="bg-brand-500 text-white rounded-xl px-4 py-2 disabled:opacity-50 hover:bg-brand-600 transition-colors"
             >
               <Send className="w-4 h-4" />
@@ -287,11 +399,15 @@ function ContactPanel({ conv, onUpdateContact }: { conv: any; onUpdateContact: a
       <div className="p-4 border-b border-gray-100">
         <div className="flex items-center gap-3 mb-3">
           <div className="w-10 h-10 rounded-full bg-brand-100 flex items-center justify-center text-brand-700 font-semibold">
-            {(conv.contact_name || conv.contact_phone || "?")[0].toUpperCase()}
+            {(conv.contact_name || conv.contact_email || conv.contact_phone || "?")[0].toUpperCase()}
           </div>
           <div>
-            <p className="text-sm font-semibold text-gray-900">{conv.contact_name || "Unknown"}</p>
-            <p className="text-xs text-gray-400">{conv.contact_phone || ""}</p>
+            <p className="text-sm font-semibold text-gray-900">
+              {conv.contact_name || conv.contact_email || conv.contact_phone || "Unknown"}
+            </p>
+            <p className="text-xs text-gray-400">
+              {conv.contact_name ? (conv.contact_email || conv.contact_phone || "") : ""}
+            </p>
           </div>
         </div>
         <div className="space-y-1.5">
@@ -299,6 +415,12 @@ function ContactPanel({ conv, onUpdateContact }: { conv: any; onUpdateContact: a
             <div className="flex items-center gap-2 text-xs text-gray-600">
               <Phone className="w-3.5 h-3.5 text-gray-400" />
               {conv.contact_phone}
+            </div>
+          )}
+          {conv.contact_email && (
+            <div className="flex items-center gap-2 text-xs text-gray-600">
+              <Mail className="w-3.5 h-3.5 text-gray-400" />
+              {conv.contact_email}
             </div>
           )}
         </div>

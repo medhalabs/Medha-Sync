@@ -9,6 +9,7 @@ class ConversationOut(BaseModel):
     contact_id: str
     contact_name: Optional[str] = None
     contact_phone: Optional[str] = None
+    contact_email: Optional[str] = None
     contact_avatar: Optional[str] = None
     contact_tags: List[str] = []
     last_message_preview: Optional[str] = None

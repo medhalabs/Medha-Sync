@@ -13,6 +13,7 @@ async def save_message(
     content: str,
     message_type: MessageType = MessageType.text,
     media_url: str = None,
+    attachments: list | None = None,
     wa_message_id: str = None,
     sent_by: str = None,
 ) -> Message:
@@ -23,6 +24,7 @@ async def save_message(
         message_type=message_type,
         content=content,
         media_url=media_url,
+        attachments=attachments or [],
         wa_message_id=wa_message_id,
         sent_by=sent_by,
     )

@@ -53,6 +53,8 @@ async def me(user_id: str = Depends(get_current_user_id), db: AsyncSession = Dep
 async def google_authorize():
     if not settings.GOOGLE_CLIENT_ID or not settings.GOOGLE_CLIENT_SECRET:
         raise HTTPException(400, "Google OAuth credentials not configured. Add GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET to .env")
+    if not settings.GOOGLE_AUTH_REDIRECT_URI:
+        raise HTTPException(400, "GOOGLE_AUTH_REDIRECT_URI is not configured")
     url = google_oauth.get_authorize_url(
         client_id=settings.GOOGLE_CLIENT_ID,
         redirect_uri=settings.GOOGLE_AUTH_REDIRECT_URI,
@@ -64,12 +66,14 @@ async def google_authorize():
 @router.post("/google/callback", response_model=TokenOut)
 @limiter.limit(LIMITS["auth_login"])
 async def google_callback(request: Request, data: OAuthCallbackRequest, db: AsyncSession = Depends(get_db)):
+    if not settings.GOOGLE_AUTH_REDIRECT_URI:
+        raise HTTPException(400, "GOOGLE_AUTH_REDIRECT_URI is not configured")
     try:
         tokens = google_oauth.exchange_code(
             code=data.code,
             client_id=settings.GOOGLE_CLIENT_ID,
             client_secret=settings.GOOGLE_CLIENT_SECRET,
-            redirect_uri=data.redirect_uri,
+            redirect_uri=settings.GOOGLE_AUTH_REDIRECT_URI,
         )
     except ValueError as e:
         raise HTTPException(400, str(e))

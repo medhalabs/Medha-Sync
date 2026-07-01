@@ -36,6 +36,8 @@ async def remove_account(account_id: str, user_id: str = Depends(get_current_use
 async def gmail_authorize(_: str = Depends(get_current_user_id)):
     if not settings.GOOGLE_CLIENT_ID or not settings.GOOGLE_CLIENT_SECRET:
         raise HTTPException(400, "Google OAuth credentials not configured. Add GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET to .env")
+    if not settings.GOOGLE_REDIRECT_URI:
+        raise HTTPException(400, "GOOGLE_REDIRECT_URI is not configured")
     url = google_oauth.get_authorize_url(
         client_id=settings.GOOGLE_CLIENT_ID,
         redirect_uri=settings.GOOGLE_REDIRECT_URI,
@@ -51,7 +53,7 @@ async def gmail_callback(data: OAuthCallbackRequest, user_id: str = Depends(get_
             code=data.code,
             client_id=settings.GOOGLE_CLIENT_ID,
             client_secret=settings.GOOGLE_CLIENT_SECRET,
-            redirect_uri=data.redirect_uri,
+            redirect_uri=settings.GOOGLE_REDIRECT_URI,
         )
     except ValueError as e:
         raise HTTPException(400, str(e))

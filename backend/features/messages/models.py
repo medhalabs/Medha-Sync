@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime
-from sqlalchemy import String, DateTime, Text, Enum as SAEnum, Boolean
+from sqlalchemy import String, DateTime, Text, Enum as SAEnum, Boolean, JSON
 from sqlalchemy.orm import Mapped, mapped_column
 from core.database import Base
 import enum
@@ -30,6 +30,7 @@ class Message(Base):
     message_type: Mapped[MessageType] = mapped_column(SAEnum(MessageType), default=MessageType.text)
     content: Mapped[str | None] = mapped_column(Text, nullable=True)
     media_url: Mapped[str | None] = mapped_column(String, nullable=True)
+    attachments: Mapped[list] = mapped_column(JSON, default=list)
     wa_message_id: Mapped[str | None] = mapped_column(String, nullable=True)
     is_read: Mapped[bool] = mapped_column(Boolean, default=False)
     sent_by: Mapped[str | None] = mapped_column(String, nullable=True)

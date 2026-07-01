@@ -48,11 +48,11 @@ class Settings(BaseSettings):
     SMTP_USERNAME: str = ""
     SMTP_PASSWORD: str = ""
 
-    # Google OAuth (Gmail)
+    # Google OAuth (Gmail) — set both URIs in production (Vercel frontend URLs)
     GOOGLE_CLIENT_ID: str = ""
     GOOGLE_CLIENT_SECRET: str = ""
-    GOOGLE_REDIRECT_URI: str = "http://localhost:3000/settings/email-callback"
-    GOOGLE_AUTH_REDIRECT_URI: str = "http://localhost:3000/auth/google/callback"
+    GOOGLE_REDIRECT_URI: str = ""
+    GOOGLE_AUTH_REDIRECT_URI: str = ""
 
     # Microsoft OAuth (Outlook)
     MICROSOFT_CLIENT_ID: str = ""

@@ -8,7 +8,7 @@ from typing import Any
 
 AUTHORIZE_URL = "https://login.microsoftonline.com/common/oauth2/v2.0/authorize"
 TOKEN_URL = "https://login.microsoftonline.com/common/oauth2/v2.0/token"
-SCOPES = ["offline_access", "User.Read", "Mail.Read", "openid", "email"]
+SCOPES = ["offline_access", "User.Read", "Mail.Read", "Mail.Send", "openid", "email"]
 
 
 def get_authorize_url(client_id: str, redirect_uri: str, state: str) -> str:

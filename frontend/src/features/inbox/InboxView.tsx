@@ -8,9 +8,19 @@ import { MessageSquare, Mail, Search } from "lucide-react";
 
 type Channel = "all" | "whatsapp" | "email";
 
-function avatar(name: string | null, phone: string | null) {
-  const label = name || phone || "?";
+function avatar(name: string | null, phone: string | null, email: string | null) {
+  const label = name || email || phone || "?";
   return label[0].toUpperCase();
+}
+
+function contactDisplayName(conv: { contact_name?: string | null; contact_email?: string | null; contact_phone?: string | null }) {
+  return conv.contact_name || conv.contact_email || (conv.contact_phone ? formatPhone(conv.contact_phone) : "Unknown");
+}
+
+function contactSubtitle(conv: { contact_name?: string | null; contact_email?: string | null; contact_phone?: string | null }) {
+  if (conv.contact_name && conv.contact_email) return conv.contact_email;
+  if (conv.contact_name && conv.contact_phone) return formatPhone(conv.contact_phone);
+  return null;
 }
 
 function formatPhone(phone: string | null) {
@@ -49,6 +59,7 @@ export default function InboxView() {
     const q = search.toLowerCase();
     return (
       c.contact_name?.toLowerCase().includes(q) ||
+      c.contact_email?.toLowerCase().includes(q) ||
       c.contact_phone?.includes(q) ||
       c.last_message_preview?.toLowerCase().includes(q)
     );
@@ -85,7 +96,9 @@ export default function InboxView() {
           {conversations.length === 0 && (
             <p className="text-xs text-gray-400 text-center pt-12">No conversations found</p>
           )}
-          {conversations.map((conv: any) => (
+          {conversations.map((conv: any) => {
+            const subtitle = contactSubtitle(conv);
+            return (
             <button key={conv.id} onClick={() => setSelectedId(conv.id)}
               className={`w-full text-left px-4 py-3.5 border-b border-gray-50 transition-all flex items-start gap-3 ${
                 selectedId === conv.id
@@ -94,22 +107,24 @@ export default function InboxView() {
               }`}>
               <div className="relative flex-shrink-0">
                 <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-400 to-purple-500 flex items-center justify-center text-white text-sm font-bold">
-                  {avatar(conv.contact_name, conv.contact_phone)}
+                  {avatar(conv.contact_name, conv.contact_phone, conv.contact_email)}
                 </div>
                 <span className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-white ${statusDot(conv.status)}`} />
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between gap-1">
                   <span className="text-sm font-semibold text-gray-900 truncate">
-                    {conv.contact_name || "Unknown"}
+                    {contactDisplayName(conv)}
                   </span>
                   <span className="text-xs text-gray-400 flex-shrink-0">
                     {conv.last_message_at ? formatRelative(conv.last_message_at) : ""}
                   </span>
                 </div>
-                <p className="text-xs text-gray-600 font-medium mt-0.5 truncate">
-                  {formatPhone(conv.contact_phone)}
-                </p>
+                {subtitle && (
+                  <p className="text-xs text-gray-600 font-medium mt-0.5 truncate">
+                    {subtitle}
+                  </p>
+                )}
                 <div className="flex items-center gap-1.5 mt-1">
                   {conv.channel === "whatsapp"
                     ? <MessageSquare className="w-3 h-3 text-emerald-500 flex-shrink-0" />
@@ -118,7 +133,8 @@ export default function InboxView() {
                 </div>
               </div>
             </button>
-          ))}
+            );
+          })}
         </div>
       </div>
 
